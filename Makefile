@@ -1,4 +1,5 @@
-RS_DIR := crates/smoleval
+LIB_DIR := crates/smoleval
+CLI_DIR := crates/smoleval-cli
 
 .PHONY: help
 help:  ## Display this help screen
@@ -32,14 +33,26 @@ dev-lint: format  ## Run format and clippy --fix to auto-fix errors
 test:  ## Run Rust tests (workspace)
 	cargo test
 
-.PHONY: doc
-doc:  ## Run cargo doc for smoleval
-	cd $(RS_DIR) && cargo doc --open
+.PHONY: doc-lib
+doc-lib:  ## Run cargo doc for smoleval lib
+	cd $(LIB_DIR) && cargo doc --open
 
-.PHONY: publish-dry-run
-publish-dry-run:  ## Publish smoleval in dry run
-	cd $(RS_DIR) && cargo publish --dry-run
+.PHONY: doc-cli
+doc-cli:  ## Run cargo doc for smoleval-cli
+	cd $(CLI_DIR) && cargo doc --open
 
-.PHONY: publish
-publish:  ## Publish smoleval to crates.io
-	cd $(RS_DIR) && cargo publish
+.PHONY: publish-lib-dry-run
+publish-lib-dry-run:  ## Publish smoleval lib in dry run
+	cd $(LIB_DIR) && cargo publish --dry-run
+
+.PHONY: publish-lib
+publish-lib:  ## Publish smoleval lib to crates.io
+	cd $(LIB_DIR) && cargo publish
+
+.PHONY: publish-cli-dry-run
+publish-cli-dry-run:  ## Publish smoleval-cli in dry run
+	cd $(CLI_DIR) && cargo publish --dry-run
+
+.PHONY: publish-cli
+publish-cli:  ## Publish smoleval-cli to crates.io
+	cd $(CLI_DIR) && cargo publish
