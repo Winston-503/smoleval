@@ -60,11 +60,7 @@ pub struct ExactMatch;
 
 impl Scorer for ExactMatch {
     fn score(&self, expected: &str, actual: &str) -> f64 {
-        if expected == actual {
-            1.0
-        } else {
-            0.0
-        }
+        if expected == actual { 1.0 } else { 0.0 }
     }
 }
 
@@ -100,8 +96,14 @@ mod tests {
     #[test]
     fn exact_match_all_correct() {
         let samples = vec![
-            Sample { input: "hello".into(), expected: "hello".into() },
-            Sample { input: "world".into(), expected: "world".into() },
+            Sample {
+                input: "hello".into(),
+                expected: "hello".into(),
+            },
+            Sample {
+                input: "world".into(),
+                expected: "world".into(),
+            },
         ];
         let report = evaluate(&EchoAgent, &ExactMatch, &samples);
         assert_eq!(report.mean_score(), 1.0);
@@ -110,8 +112,14 @@ mod tests {
     #[test]
     fn exact_match_partial() {
         let samples = vec![
-            Sample { input: "hello".into(), expected: "hello".into() },
-            Sample { input: "world".into(), expected: "wrong".into() },
+            Sample {
+                input: "hello".into(),
+                expected: "hello".into(),
+            },
+            Sample {
+                input: "world".into(),
+                expected: "wrong".into(),
+            },
         ];
         let report = evaluate(&EchoAgent, &ExactMatch, &samples);
         assert_eq!(report.mean_score(), 0.5);

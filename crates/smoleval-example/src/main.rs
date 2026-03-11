@@ -11,10 +11,22 @@ impl Agent for UpperAgent {
 
 fn main() {
     let samples = vec![
-        Sample { input: "hello".into(), expected: "HELLO".into() },
-        Sample { input: "world".into(), expected: "WORLD".into() },
-        Sample { input: "Rust".into(), expected: "RUST".into() },
-        Sample { input: "oops".into(), expected: "nope".into() },
+        Sample {
+            input: "hello".into(),
+            expected: "HELLO".into(),
+        },
+        Sample {
+            input: "world".into(),
+            expected: "WORLD".into(),
+        },
+        Sample {
+            input: "Rust".into(),
+            expected: "RUST".into(),
+        },
+        Sample {
+            input: "oops".into(),
+            expected: "nope".into(),
+        },
     ];
 
     let report = evaluate(&UpperAgent, &ExactMatch, &samples);
