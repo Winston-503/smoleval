@@ -8,4 +8,4 @@ pub use agent::{Agent, AgentResponse, ToolCall};
 pub use check::{Check, CheckDef, CheckRegistry, CheckResult, ToolStrictness};
 pub use dataset::{EvalDataset, TestCase};
 pub use error::{Result, SmolError};
-pub use eval::{EvalReport, TestCaseResult, evaluate};
+pub use eval::{EvalOptions, EvalReport, TestCaseResult, evaluate, evaluate_with_options};
