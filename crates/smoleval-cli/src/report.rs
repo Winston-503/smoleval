@@ -27,12 +27,7 @@ pub fn format_text(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
 
             for (def, check_result) in result.test_case.checks.iter().zip(&result.check_results) {
                 let icon = if check_result.passed() { "OK" } else { "FAIL" };
-                writeln!(
-                    w,
-                    "  [{icon}] {}: {}",
-                    def.check_type,
-                    check_result.reason()
-                )?;
+                writeln!(w, "  [{icon}] {}: {}", def.check_type, check_result.reason())?;
             }
         }
         writeln!(w)?;

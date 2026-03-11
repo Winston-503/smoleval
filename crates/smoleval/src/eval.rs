@@ -89,11 +89,7 @@ impl EvalReport {
 ///
 /// For each test case: sends the prompt to the agent, runs all checks from
 /// the registry, and collects results into an [`EvalReport`].
-pub async fn evaluate<A: Agent>(
-    agent: &A,
-    dataset: &EvalDataset,
-    registry: &CheckRegistry,
-) -> Result<EvalReport> {
+pub async fn evaluate<A: Agent>(agent: &A, dataset: &EvalDataset, registry: &CheckRegistry) -> Result<EvalReport> {
     let options = EvalOptions {
         concurrency: 1,
         fail_fast: true,
@@ -220,11 +216,7 @@ async fn run_single<A: Agent>(
     Ok((response, check_results, score))
 }
 
-fn run_checks(
-    test_case: &TestCase,
-    response: &AgentResponse,
-    registry: &CheckRegistry,
-) -> Result<Vec<CheckResult>> {
+fn run_checks(test_case: &TestCase, response: &AgentResponse, registry: &CheckRegistry) -> Result<Vec<CheckResult>> {
     test_case
         .checks
         .iter()
@@ -313,10 +305,7 @@ mod tests {
 
     #[test]
     fn mean_score_partial() {
-        let results = vec![
-            CheckResult::build(0.5, "half").unwrap(),
-            CheckResult::pass("ok"),
-        ];
+        let results = vec![CheckResult::build(0.5, "half").unwrap(), CheckResult::pass("ok")];
         assert_eq!(mean_score(&results), 0.75);
     }
 

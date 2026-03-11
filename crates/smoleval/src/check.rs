@@ -344,9 +344,7 @@ pub struct ExactMatch {
 impl ExactMatch {
     fn from_config(config: &serde_json::Value) -> Result<Box<dyn Check>> {
         let cfg: ExactMatchConfig = parse_config(config)?;
-        Ok(Box::new(Self {
-            expected: cfg.expected,
-        }))
+        Ok(Box::new(Self { expected: cfg.expected }))
     }
 }
 
@@ -355,10 +353,7 @@ impl Check for ExactMatch {
         if response.text == self.expected {
             CheckResult::pass("exact match".to_string())
         } else {
-            CheckResult::fail(format!(
-                "expected {:?}, got {:?}",
-                self.expected, response.text
-            ))
+            CheckResult::fail(format!("expected {:?}, got {:?}", self.expected, response.text))
         }
     }
 }
@@ -402,11 +397,7 @@ impl ToolsUsed {
 
 impl Check for ToolsUsed {
     fn run(&self, response: &AgentResponse) -> CheckResult {
-        let actual_tools: Vec<&str> = response
-            .tool_calls
-            .iter()
-            .map(|tc| tc.name.as_str())
-            .collect();
+        let actual_tools: Vec<&str> = response.tool_calls.iter().map(|tc| tc.name.as_str()).collect();
 
         match self.strictness {
             ToolStrictness::AtLeast => {
@@ -420,17 +411,13 @@ impl Check for ToolsUsed {
                 if missing.is_empty() {
                     CheckResult::pass(format!("agent used {:?}", actual_tools))
                 } else {
-                    CheckResult::fail(format!(
-                        "missing tools {:?}, agent used {:?}",
-                        missing, actual_tools
-                    ))
+                    CheckResult::fail(format!("missing tools {:?}, agent used {:?}", missing, actual_tools))
                 }
             }
             ToolStrictness::Exact => {
                 let mut expected_sorted = self.tools.clone();
                 expected_sorted.sort();
-                let mut actual_sorted: Vec<String> =
-                    actual_tools.iter().map(|s| s.to_string()).collect();
+                let mut actual_sorted: Vec<String> = actual_tools.iter().map(|s| s.to_string()).collect();
                 actual_sorted.sort();
 
                 if expected_sorted == actual_sorted {
@@ -808,9 +795,7 @@ mod tests {
 
     #[test]
     fn exact_match_empty_string() {
-        let check = ExactMatch {
-            expected: "".into(),
-        };
+        let check = ExactMatch { expected: "".into() };
         assert!(check.run(&text_response("")).passed());
         assert!(!check.run(&text_response(" ")).passed());
     }

@@ -52,9 +52,7 @@ impl Agent for HttpAgent {
             return Err(SmolError::AgentError(format!(
                 "HTTP {}: {}",
                 resp.status(),
-                resp.text()
-                    .await
-                    .unwrap_or_else(|_| "failed to read body".into())
+                resp.text().await.unwrap_or_else(|_| "failed to read body".into())
             )));
         }
 
