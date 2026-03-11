@@ -659,4 +659,167 @@ mod tests {
         };
         assert!(registry.create(&def).is_err());
     }
+
+    // -- Additional edge-case tests --
+
+    #[test]
+    fn check_result_build_boundary_zero() {
+        let r = CheckResult::build(0.0, "zero").unwrap();
+        assert_eq!(r.score(), 0.0);
+        assert!(!r.passed());
+    }
+
+    #[test]
+    fn check_result_build_boundary_one() {
+        let r = CheckResult::build(1.0, "one").unwrap();
+        assert_eq!(r.score(), 1.0);
+        assert!(r.passed());
+    }
+
+    #[test]
+    fn check_result_reason_preserved() {
+        let r = CheckResult::pass("detailed reason");
+        assert_eq!(r.reason(), "detailed reason");
+    }
+
+    #[test]
+    fn contains_any_case_sensitive() {
+        let check = ContainsAny {
+            values: vec!["Hello".into()],
+            case_sensitive: true,
+        };
+        assert!(check.run(&text_response("Hello World")).passed());
+        assert!(!check.run(&text_response("hello world")).passed());
+    }
+
+    #[test]
+    fn not_contains_case_sensitive() {
+        let check = NotContains {
+            values: vec!["Hello".into()],
+            case_sensitive: true,
+        };
+        // "hello" doesn't match "Hello" case-sensitively
+        assert!(check.run(&text_response("hello world")).passed());
+        assert!(!check.run(&text_response("Hello world")).passed());
+    }
+
+    #[test]
+    fn contains_all_empty_values() {
+        let check = ContainsAll {
+            values: vec![],
+            case_sensitive: false,
+        };
+        assert!(check.run(&text_response("anything")).passed());
+    }
+
+    #[test]
+    fn contains_any_empty_values() {
+        let check = ContainsAny {
+            values: vec![],
+            case_sensitive: false,
+        };
+        assert!(!check.run(&text_response("anything")).passed());
+    }
+
+    #[test]
+    fn not_contains_empty_values() {
+        let check = NotContains {
+            values: vec![],
+            case_sensitive: false,
+        };
+        assert!(check.run(&text_response("anything")).passed());
+    }
+
+    #[test]
+    fn tools_used_at_least_empty_required() {
+        let check = ToolsUsed {
+            tools: vec![],
+            strictness: ToolStrictness::AtLeast,
+        };
+        assert!(check.run(&response_with_tools("ok", &["a"])).passed());
+    }
+
+    #[test]
+    fn tools_used_exact_both_empty() {
+        let check = ToolsUsed {
+            tools: vec![],
+            strictness: ToolStrictness::Exact,
+        };
+        assert!(check.run(&response_with_tools("ok", &[])).passed());
+    }
+
+    #[test]
+    fn tools_used_exact_fail_missing() {
+        let check = ToolsUsed {
+            tools: vec!["a".into(), "b".into()],
+            strictness: ToolStrictness::Exact,
+        };
+        assert!(!check.run(&response_with_tools("ok", &["a"])).passed());
+    }
+
+    #[test]
+    fn registry_empty_cannot_create() {
+        let registry = CheckRegistry::new();
+        let def = CheckDef {
+            check_type: "containsAll".into(),
+            config: serde_json::json!({"values": ["hi"]}),
+        };
+        assert!(registry.create(&def).is_err());
+    }
+
+    #[test]
+    fn registry_default_is_empty() {
+        let registry = CheckRegistry::default();
+        let def = CheckDef {
+            check_type: "containsAll".into(),
+            config: serde_json::json!({"values": ["hi"]}),
+        };
+        assert!(registry.create(&def).is_err());
+    }
+
+    #[test]
+    fn registry_custom_check() {
+        struct AlwaysFail;
+        impl Check for AlwaysFail {
+            fn run(&self, _response: &AgentResponse) -> CheckResult {
+                CheckResult::fail("always fails")
+            }
+        }
+
+        let mut registry = CheckRegistry::new();
+        registry.register("alwaysFail", Box::new(|_| Ok(Box::new(AlwaysFail))));
+        let def = CheckDef {
+            check_type: "alwaysFail".into(),
+            config: serde_json::json!({}),
+        };
+        let check = registry.create(&def).unwrap();
+        assert!(!check.run(&text_response("anything")).passed());
+    }
+
+    #[test]
+    fn contains_all_invalid_config() {
+        let registry = CheckRegistry::with_builtins();
+        let def = CheckDef {
+            check_type: "containsAll".into(),
+            config: serde_json::json!({"wrong_field": 123}),
+        };
+        assert!(registry.create(&def).is_err());
+    }
+
+    #[test]
+    fn exact_match_empty_string() {
+        let check = ExactMatch {
+            expected: "".into(),
+        };
+        assert!(check.run(&text_response("")).passed());
+        assert!(!check.run(&text_response(" ")).passed());
+    }
+
+    #[test]
+    fn check_def_deserialize() {
+        let json = r#"{"type": "containsAll", "values": ["a"]}"#;
+        let def: CheckDef = serde_json::from_str(json).unwrap();
+        assert_eq!(def.check_type, "containsAll");
+        assert_eq!(def.config["values"][0], "a");
+    }
 }

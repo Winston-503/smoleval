@@ -46,3 +46,142 @@ impl EvalDataset {
         Ok(dataset)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_minimal_dataset() {
+        let yaml = r#"
+name: minimal
+tests:
+  - name: t1
+    prompt: hello
+    checks: []
+"#;
+        let ds = EvalDataset::from_yaml(yaml).unwrap();
+        assert_eq!(ds.name, "minimal");
+        assert_eq!(ds.description, "");
+        assert_eq!(ds.tests.len(), 1);
+        assert_eq!(ds.tests[0].description, "");
+    }
+
+    #[test]
+    fn parse_full_dataset() {
+        let yaml = r#"
+name: full
+description: a full dataset
+tests:
+  - name: t1
+    description: first test
+    prompt: say hi
+    checks:
+      - type: exactMatch
+        expected: hi
+  - name: t2
+    prompt: say bye
+    checks:
+      - type: containsAll
+        values: ["bye"]
+"#;
+        let ds = EvalDataset::from_yaml(yaml).unwrap();
+        assert_eq!(ds.name, "full");
+        assert_eq!(ds.description, "a full dataset");
+        assert_eq!(ds.tests.len(), 2);
+        assert_eq!(ds.tests[0].name, "t1");
+        assert_eq!(ds.tests[0].description, "first test");
+        assert_eq!(ds.tests[0].checks.len(), 1);
+        assert_eq!(ds.tests[0].checks[0].check_type, "exactMatch");
+        assert_eq!(ds.tests[1].checks[0].check_type, "containsAll");
+    }
+
+    #[test]
+    fn parse_empty_tests_list() {
+        let yaml = r#"
+name: empty
+tests: []
+"#;
+        let ds = EvalDataset::from_yaml(yaml).unwrap();
+        assert!(ds.tests.is_empty());
+    }
+
+    #[test]
+    fn parse_invalid_yaml() {
+        let yaml = "not: [valid: yaml: {{";
+        assert!(EvalDataset::from_yaml(yaml).is_err());
+    }
+
+    #[test]
+    fn parse_missing_required_field_name() {
+        let yaml = r#"
+tests:
+  - name: t1
+    prompt: hello
+    checks: []
+"#;
+        assert!(EvalDataset::from_yaml(yaml).is_err());
+    }
+
+    #[test]
+    fn parse_missing_required_field_prompt() {
+        let yaml = r#"
+name: test
+tests:
+  - name: t1
+    checks: []
+"#;
+        assert!(EvalDataset::from_yaml(yaml).is_err());
+    }
+
+    #[test]
+    fn parse_missing_required_field_tests() {
+        let yaml = "name: orphan\n";
+        assert!(EvalDataset::from_yaml(yaml).is_err());
+    }
+
+    #[test]
+    fn from_file_nonexistent() {
+        let result = EvalDataset::from_file(std::path::Path::new("/nonexistent/file.yaml"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn serialize_roundtrip() {
+        let yaml = r#"
+name: roundtrip
+tests:
+  - name: t1
+    prompt: hello
+    checks:
+      - type: exactMatch
+        expected: hello
+"#;
+        let ds = EvalDataset::from_yaml(yaml).unwrap();
+        let serialized = serde_yaml::to_string(&ds).unwrap();
+        let ds2 = EvalDataset::from_yaml(&serialized).unwrap();
+        assert_eq!(ds.name, ds2.name);
+        assert_eq!(ds.tests.len(), ds2.tests.len());
+        assert_eq!(ds.tests[0].prompt, ds2.tests[0].prompt);
+    }
+
+    #[test]
+    fn check_def_preserves_config() {
+        let yaml = r#"
+name: cfg
+tests:
+  - name: t1
+    prompt: test
+    checks:
+      - type: containsAll
+        values: ["a", "b"]
+        caseSensitive: true
+"#;
+        let ds = EvalDataset::from_yaml(yaml).unwrap();
+        let check = &ds.tests[0].checks[0];
+        assert_eq!(check.check_type, "containsAll");
+        let values = check.config["values"].as_array().unwrap();
+        assert_eq!(values.len(), 2);
+        assert_eq!(check.config["caseSensitive"], true);
+    }
+}
