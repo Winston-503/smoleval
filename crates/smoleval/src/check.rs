@@ -74,11 +74,19 @@ impl CheckResult {
     }
 
     pub fn reason(&self) -> &str {
-        &self.reason
+        self.reason.as_str()
     }
 
     pub fn passed(&self) -> bool {
         self.score == 1.0
+    }
+
+    pub fn label(&self) -> String {
+        if self.passed() {
+            "OK".to_string()
+        } else {
+            "FAIL".to_string()
+        }
     }
 }
 

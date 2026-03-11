@@ -43,6 +43,16 @@ pub struct TestCaseResult {
     pub error: Option<String>,
 }
 
+impl TestCaseResult {
+    pub fn label(&self) -> String {
+        if self.score == 1.0 {
+            "PASS".to_string()
+        } else {
+            "FAIL".to_string()
+        }
+    }
+}
+
 /// Report for an entire evaluation run.
 #[derive(Debug, Clone)]
 pub struct EvalReport {

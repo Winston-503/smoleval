@@ -1,10 +1,12 @@
 use smoleval::{Agent, AgentResponse, CheckRegistry, EvalDataset, ToolCall, evaluate};
 
-/// A mock agent that echoes its input and always calls an "echo_tool".
+/// A mock agent that echoes its input after 1 sec delay and always calls an "echo_tool"
 struct MockAgent;
 
 impl Agent for MockAgent {
     async fn run(&self, prompt: &str) -> smoleval::Result<AgentResponse> {
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
         Ok(AgentResponse {
             text: prompt.to_string(),
             tool_calls: vec![ToolCall {
@@ -17,46 +19,19 @@ impl Agent for MockAgent {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let yaml = r#"
-name: "Mock Agent Eval"
-description: "Demo evaluation with a mock echo agent"
-tests:
-  - name: echoGreeting
-    prompt: "Hello, world!"
-    checks:
-      - type: containsAll
-        values: ["Hello", "world"]
-      - type: exactMatch
-        expected: "Hello, world!"
+    let yaml = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/mock_eval_dataset.yaml"),
+    )?;
 
-  - name: checkToolUsage
-    prompt: "Do something with tools"
-    checks:
-      - type: containsAny
-        values: ["tools", "something"]
-      - type: toolsUsed
-        tools: ["echo_tool"]
-        strictness: atLeast
-
-  - name: noHallucination
-    prompt: "Simple response"
-    checks:
-      - type: notContains
-        values: ["hallucinated", "made up"]
-"#;
-
-    let dataset = EvalDataset::from_yaml(yaml)?;
+    let dataset = EvalDataset::from_yaml(&yaml)?;
     let registry = CheckRegistry::with_builtins();
     let report = evaluate(&MockAgent, &dataset, &registry).await?;
 
-    // Print results
-    println!("=== {} ===\n", report.dataset_name);
+     println!("=== {} ===\n", report.dataset_name);
     for result in &report.results {
-        let status = if result.score == 1.0 { "PASS" } else { "FAIL" };
-        println!("[{status}] {} ({:.2})", result.test_case.name, result.score);
-        for (def, cr) in result.test_case.checks.iter().zip(&result.check_results) {
-            let icon = if cr.passed() { "OK" } else { "FAIL" };
-            println!("  [{icon}] {}: {}", def.check_type, cr.reason());
+        println!("[{}] {} ({:.2})", result.label(), result.test_case.name, result.score);
+        for (check, check_result) in result.test_case.checks.iter().zip(&result.check_results) {
+            println!("  [{}] {}: {}", check_result.label(), check.check_type, check_result.reason());
         }
         println!();
     }
