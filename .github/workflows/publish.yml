@@ -1,11 +1,11 @@
-name: Publish
+name: Publish to crates.io
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  publish:
+  publish-lib:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,6 +25,31 @@ jobs:
 
       - name: Publish to crates.io
         if: steps.version.outputs.changed == 'true'
-        run: make publish
+        run: make publish-lib
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  publish-cli:
+    runs-on: ubuntu-latest
+    needs: publish-lib
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if version changed
+        id: version
+        run: |
+          LOCAL_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "smoleval-cli") | .version')
+          PUBLISHED_VERSION=$(cargo search smoleval-cli --limit 1 | grep "^smoleval-cli " | sed 's/smoleval-cli = "\(.*\)".*/\1/')
+          echo "local=$LOCAL_VERSION"
+          echo "published=$PUBLISHED_VERSION"
+          if [ "$LOCAL_VERSION" != "$PUBLISHED_VERSION" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to crates.io
+        if: steps.version.outputs.changed == 'true'
+        run: make publish-cli
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
