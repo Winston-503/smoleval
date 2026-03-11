@@ -1,0 +1,17 @@
+[package]
+name = "smoleval-cli"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "smoleval"
+path = "src/main.rs"
+
+[dependencies]
+smoleval = { workspace = true }
+smoleval-http = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }

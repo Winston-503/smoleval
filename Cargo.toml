@@ -1,3 +1,20 @@
 [workspace]
-members = ["crates/smoleval", "crates/smoleval-example"]
+members = [
+    "crates/smoleval",
+    "crates/smoleval-http",
+    "crates/smoleval-cli",
+    "crates/smoleval-example",
+]
 resolver = "2"
+
+[workspace.dependencies]
+smoleval = { path = "crates/smoleval" }
+smoleval-http = { path = "crates/smoleval-http" }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+clap = { version = "4", features = ["derive"] }
+thiserror = "2"
+anyhow = "1"
