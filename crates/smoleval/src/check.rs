@@ -7,16 +7,16 @@ use crate::agent::AgentResponse;
 use crate::error::SmolError;
 
 // ---------------------------------------------------------------------------
-// CheckDef — raw definition from YAML
+// CheckSpec — raw spec from YAML
 // ---------------------------------------------------------------------------
 
-/// A check definition as deserialized from YAML.
+/// A check specification as deserialized from YAML.
 ///
 /// The `type` field selects the [`Check`] implementation from the
 /// [`CheckRegistry`]; the remaining fields are passed as config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CheckDef {
+pub struct CheckSpec {
     /// The check type name (e.g. "containsAll", "toolsUsed").
     #[serde(rename = "type")]
     pub check_type: String,
@@ -143,11 +143,11 @@ impl CheckRegistry {
         self.factories.insert(name.to_string(), factory);
     }
 
-    /// Create a [`Check`] from a [`CheckDef`].
+    /// Create a [`Check`] from a [`CheckSpec`].
     ///
     /// Looks up the `check_type` in the registry and passes the config to the
     /// factory function.
-    pub fn create(&self, def: &CheckDef) -> Result<Box<dyn Check>> {
+    pub fn create(&self, def: &CheckSpec) -> Result<Box<dyn Check>> {
         let factory = self
             .factories
             .get(&def.check_type)
@@ -636,7 +636,7 @@ mod tests {
     #[test]
     fn registry_builtins_resolve() {
         let registry = CheckRegistry::with_builtins();
-        let def = CheckDef {
+        let def = CheckSpec {
             check_type: "containsAll".into(),
             config: serde_json::json!({"values": ["hello"]}),
         };
@@ -648,7 +648,7 @@ mod tests {
     #[test]
     fn registry_unknown_type() {
         let registry = CheckRegistry::with_builtins();
-        let def = CheckDef {
+        let def = CheckSpec {
             check_type: "nonExistent".into(),
             config: serde_json::json!({}),
         };
@@ -755,7 +755,7 @@ mod tests {
     #[test]
     fn registry_empty_cannot_create() {
         let registry = CheckRegistry::new();
-        let def = CheckDef {
+        let def = CheckSpec {
             check_type: "containsAll".into(),
             config: serde_json::json!({"values": ["hi"]}),
         };
@@ -765,7 +765,7 @@ mod tests {
     #[test]
     fn registry_default_is_empty() {
         let registry = CheckRegistry::default();
-        let def = CheckDef {
+        let def = CheckSpec {
             check_type: "containsAll".into(),
             config: serde_json::json!({"values": ["hi"]}),
         };
@@ -783,7 +783,7 @@ mod tests {
 
         let mut registry = CheckRegistry::new();
         registry.register("alwaysFail", Box::new(|_| Ok(Box::new(AlwaysFail))));
-        let def = CheckDef {
+        let def = CheckSpec {
             check_type: "alwaysFail".into(),
             config: serde_json::json!({}),
         };
@@ -794,7 +794,7 @@ mod tests {
     #[test]
     fn contains_all_invalid_config() {
         let registry = CheckRegistry::with_builtins();
-        let def = CheckDef {
+        let def = CheckSpec {
             check_type: "containsAll".into(),
             config: serde_json::json!({"wrong_field": 123}),
         };
@@ -809,9 +809,9 @@ mod tests {
     }
 
     #[test]
-    fn check_def_deserialize() {
+    fn check_spec_deserialize() {
         let json = r#"{"type": "containsAll", "values": ["a"]}"#;
-        let def: CheckDef = serde_json::from_str(json).unwrap();
+        let def: CheckSpec = serde_json::from_str(json).unwrap();
         assert_eq!(def.check_type, "containsAll");
         assert_eq!(def.config["values"][0], "a");
     }
