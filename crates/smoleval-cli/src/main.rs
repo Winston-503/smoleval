@@ -10,11 +10,7 @@ use clap::{Parser, ValueEnum};
 use smoleval::{CheckRegistry, EvalDataset, EvalOptions, evaluate_with_options};
 
 #[derive(Parser)]
-#[command(
-    name = "smoleval",
-    about = "Minimal AI agent evaluation framework",
-    version
-)]
+#[command(name = "smoleval", about = "Minimal AI agent evaluation framework", version)]
 struct Cli {
     /// Path to the YAML evaluation dataset.
     #[arg(short, long)]

@@ -29,10 +29,7 @@ mod tests {
 
     #[test]
     fn dataset_io_error_display() {
-        let err = SmolError::DatasetIo(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "file missing",
-        ));
+        let err = SmolError::DatasetIo(std::io::Error::new(std::io::ErrorKind::NotFound, "file missing"));
         let msg = err.to_string();
         assert!(msg.contains("failed to read dataset"));
         assert!(msg.contains("file missing"));

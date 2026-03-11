@@ -17,8 +17,7 @@ impl Agent for EchoAgent {
 
 #[tokio::test]
 async fn load_yaml_and_evaluate() {
-    let dataset =
-        EvalDataset::from_file(std::path::Path::new("tests/fixtures/sample_eval.yaml")).unwrap();
+    let dataset = EvalDataset::from_file(std::path::Path::new("tests/fixtures/sample_eval.yaml")).unwrap();
 
     assert_eq!(dataset.name, "Echo Agent Eval");
     assert_eq!(dataset.tests.len(), 4);
