@@ -33,6 +33,10 @@ dev-lint: format  ## Run format and clippy --fix to auto-fix errors
 test:  ## Run Rust tests (workspace)
 	cargo test
 
+.PHONY: example
+example:  ## Run the smoleval-example binary
+	cargo run -p smoleval-example
+
 .PHONY: doc-lib
 doc-lib:  ## Run cargo doc for smoleval lib
 	cd $(LIB_DIR) && cargo doc --open

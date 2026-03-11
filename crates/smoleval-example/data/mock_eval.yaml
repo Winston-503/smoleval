@@ -1,0 +1,28 @@
+name: "Mock Agent Eval"
+description: "Demo evaluation with a mock echo agent"
+tests:
+  - name: echoGreeting
+    prompt: |
+      Hello, world!
+    checks:
+      - type: containsAll
+        values: ["Hello", "world"]
+      - type: exactMatch
+        expected: "Hello World!!!"
+
+  - name: checkToolUsage
+    prompt: |
+      Do something with tools
+    checks:
+      - type: containsAny
+        values: ["tools", "something"]
+      - type: toolsUsed
+        tools: ["echo_tool"]
+        strictness: atLeast
+
+  - name: noHallucination
+    prompt: |
+      This input doesn't matter
+    checks:
+      - type: notContains
+        values: ["hallucinated", "made up"]

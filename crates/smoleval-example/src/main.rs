@@ -5,6 +5,7 @@ struct MockAgent;
 
 impl Agent for MockAgent {
     async fn run(&self, prompt: &str) -> smoleval::Result<AgentResponse> {
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         Ok(AgentResponse {
             text: prompt.to_string(),
             tool_calls: vec![ToolCall {
@@ -17,35 +18,11 @@ impl Agent for MockAgent {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let yaml = r#"
-name: "Mock Agent Eval"
-description: "Demo evaluation with a mock echo agent"
-tests:
-  - name: echoGreeting
-    prompt: "Hello, world!"
-    checks:
-      - type: containsAll
-        values: ["Hello", "world"]
-      - type: exactMatch
-        expected: "Hello, world!"
+    let yaml = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/mock_eval.yaml"),
+    )?;
 
-  - name: checkToolUsage
-    prompt: "Do something with tools"
-    checks:
-      - type: containsAny
-        values: ["tools", "something"]
-      - type: toolsUsed
-        tools: ["echo_tool"]
-        strictness: atLeast
-
-  - name: noHallucination
-    prompt: "Simple response"
-    checks:
-      - type: notContains
-        values: ["hallucinated", "made up"]
-"#;
-
-    let dataset = EvalDataset::from_yaml(yaml)?;
+    let dataset = EvalDataset::from_yaml(&yaml)?;
     let registry = CheckRegistry::with_builtins();
     let report = evaluate(&MockAgent, &dataset, &registry).await?;
 
