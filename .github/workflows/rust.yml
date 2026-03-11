@@ -17,3 +17,8 @@ jobs:
         run: make lint
       - name: Run Rust tests
         run: make test
+      - name: Publish to crates.io
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: make publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
