@@ -5,8 +5,7 @@ use smoleval::{Agent, AgentResponse, Result, SmolError};
 
 /// Simple HTTP JSON agent connector.
 ///
-/// Sends a POST request with `{"prompt": "..."}` and expects an
-/// [`AgentResponse`] JSON back.
+/// Sends a POST request with `{"prompt": "..."}` and expects an [`AgentResponse`] JSON back.
 pub struct HttpAgent {
     client: reqwest::Client,
     url: String,

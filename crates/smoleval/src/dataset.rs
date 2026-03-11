@@ -24,7 +24,7 @@ pub struct EvalDataset {
 pub struct TestCase {
     /// Unique name for this test case.
     pub name: String,
-    /// What this test case is checking.
+    /// Optional description of the test case.
     #[serde(default)]
     pub description: String,
     /// The prompt sent to the agent.

@@ -12,12 +12,12 @@ use crate::error::SmolError;
 
 /// A check specification as deserialized from YAML.
 ///
-/// The `type` field selects the [`Check`] implementation from the
-/// [`CheckRegistry`]; the remaining fields are passed as config.
+/// The `type` field selects the [`Check`] implementation from the [`CheckRegistry`];
+/// the remaining fields are passed as config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CheckSpec {
-    /// The check type name (e.g. "containsAll", "toolsUsed").
+    /// The check type name.
     #[serde(rename = "type")]
     pub check_type: String,
     /// Remaining YAML fields forwarded to the check factory.
@@ -31,8 +31,8 @@ pub struct CheckSpec {
 
 /// The result of running a single check against an agent response.
 ///
-/// Construct via [`CheckResult::pass`], [`CheckResult::fail`], or
-/// [`CheckResult::build`] to guarantee the score is in `[0.0, 1.0]`.
+/// Construct via [`CheckResult::pass`], [`CheckResult::fail`], or [`CheckResult::build`]
+/// to guarantee the score is in `[0.0, 1.0]`.
 #[derive(Debug, Clone)]
 pub struct CheckResult {
     score: f64,
@@ -63,6 +63,7 @@ impl CheckResult {
         if !(0.0..=1.0).contains(&score) {
             return Err(SmolError::InvalidScore(score));
         }
+
         Ok(Self {
             score,
             reason: reason.into(),
@@ -96,8 +97,7 @@ impl CheckResult {
 
 /// Trait for check implementations.
 ///
-/// Implement this trait and register it with [`CheckRegistry`] to add custom
-/// checks.
+/// Implement this trait and register it with [`CheckRegistry`] to add custom checks.
 pub trait Check: Send + Sync {
     /// Run this check against an agent response.
     fn run(&self, response: &AgentResponse) -> CheckResult;
@@ -112,8 +112,7 @@ type CheckFactory = Box<dyn Fn(&serde_json::Value) -> Result<Box<dyn Check>> + S
 
 /// Registry that maps check type names to factory functions.
 ///
-/// Use [`CheckRegistry::with_builtins`] to get a registry pre-loaded with
-/// all built-in check types.
+/// Use [`CheckRegistry::with_builtins`] to get a registry pre-loaded with all built-in check types.
 pub struct CheckRegistry {
     factories: HashMap<String, CheckFactory>,
 }
@@ -126,8 +125,7 @@ impl CheckRegistry {
         }
     }
 
-    /// Create a registry pre-loaded with all built-in checks:
-    /// `containsAll`, `containsAny`, `notContains`, `exactMatch`, `toolsUsed`.
+    /// Create a registry preloaded with all built-in checks.
     pub fn with_builtins() -> Self {
         let mut registry = Self::new();
         registry.register("containsAll", Box::new(ContainsAll::from_config));
@@ -145,8 +143,7 @@ impl CheckRegistry {
 
     /// Create a [`Check`] from a [`CheckSpec`].
     ///
-    /// Looks up the `check_type` in the registry and passes the config to the
-    /// factory function.
+    /// Looks up the `check_type` in the registry and passes the config to the factory function.
     pub fn create(&self, def: &CheckSpec) -> Result<Box<dyn Check>> {
         let factory = self
             .factories

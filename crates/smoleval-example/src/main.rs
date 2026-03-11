@@ -19,19 +19,23 @@ impl Agent for MockAgent {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let yaml = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/mock_eval_dataset.yaml"),
-    )?;
+    let yaml =
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/mock_eval_dataset.yaml"))?;
 
     let dataset = EvalDataset::from_yaml(&yaml)?;
     let registry = CheckRegistry::with_builtins();
     let report = evaluate(&MockAgent, &dataset, &registry).await?;
 
-     println!("=== {} ===\n", report.dataset_name);
+    println!("=== {} ===\n", report.dataset_name);
     for result in &report.results {
         println!("[{}] {} ({:.2})", result.label(), result.test_case.name, result.score);
         for (check, check_result) in result.test_case.checks.iter().zip(&result.check_results) {
-            println!("  [{}] {}: {}", check_result.label(), check.check_type, check_result.reason());
+            println!(
+                "  [{}] {}: {}",
+                check_result.label(),
+                check.check_type,
+                check_result.reason()
+            );
         }
         println!();
     }

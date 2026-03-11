@@ -25,11 +25,8 @@ pub struct AgentResponse {
 }
 
 /// Trait that agent connectors implement.
-///
-/// Uses async (RPITIT) because real agent communication is I/O-bound.
-/// For sync test agents, just write `async fn` that returns immediately.
 pub trait Agent: Send + Sync {
-    fn run(&self, prompt: &str) -> impl std::future::Future<Output = Result<AgentResponse>> + Send;
+    fn run(&self, prompt: &str) -> impl Future<Output = Result<AgentResponse>> + Send;
 }
 
 #[cfg(test)]

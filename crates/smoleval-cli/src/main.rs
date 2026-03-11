@@ -9,6 +9,13 @@ use anyhow::Result;
 use clap::{Parser, ValueEnum};
 use smoleval::{CheckRegistry, EvalDataset, EvalOptions, evaluate_with_options};
 
+#[derive(Clone, Debug, ValueEnum)]
+enum OutputFormat {
+    Text,
+    Json,
+    Junit,
+}
+
 #[derive(Parser)]
 #[command(name = "smoleval", about = "Minimal AI agent evaluation framework", version)]
 struct Cli {
@@ -47,13 +54,6 @@ struct Cli {
     /// Abort on first agent error (only effective with concurrency=1).
     #[arg(long)]
     fail_fast: bool,
-}
-
-#[derive(Clone, Debug, ValueEnum)]
-enum OutputFormat {
-    Text,
-    Json,
-    Junit,
 }
 
 #[tokio::main]
