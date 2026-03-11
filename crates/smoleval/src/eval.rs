@@ -279,7 +279,7 @@ mod tests {
         }
     }
 
-    fn make_test_case(name: &str, prompt: &str, checks: Vec<crate::check::CheckDef>) -> TestCase {
+    fn make_test_case(name: &str, prompt: &str, checks: Vec<crate::check::CheckSpec>) -> TestCase {
         TestCase {
             name: name.into(),
             description: String::new(),
@@ -436,7 +436,7 @@ mod tests {
         let tc = make_test_case(
             "t",
             "hello",
-            vec![crate::check::CheckDef {
+            vec![crate::check::CheckSpec {
                 check_type: "exactMatch".into(),
                 config: serde_json::json!({"expected": "hello"}),
             }],
@@ -457,11 +457,11 @@ mod tests {
             "t",
             "hello world",
             vec![
-                crate::check::CheckDef {
+                crate::check::CheckSpec {
                     check_type: "containsAll".into(),
                     config: serde_json::json!({"values": ["hello"]}),
                 },
-                crate::check::CheckDef {
+                crate::check::CheckSpec {
                     check_type: "exactMatch".into(),
                     config: serde_json::json!({"expected": "wrong"}),
                 },
@@ -483,7 +483,7 @@ mod tests {
         let tc = make_test_case(
             "t",
             "hello",
-            vec![crate::check::CheckDef {
+            vec![crate::check::CheckSpec {
                 check_type: "doesNotExist".into(),
                 config: serde_json::json!({}),
             }],

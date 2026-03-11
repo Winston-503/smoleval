@@ -3,7 +3,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::Result;
-use crate::check::CheckDef;
+use crate::check::CheckSpec;
 
 /// A full evaluation dataset loaded from YAML.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ pub struct TestCase {
     /// The prompt sent to the agent.
     pub prompt: String,
     /// Checks to run against the agent's response.
-    pub checks: Vec<CheckDef>,
+    pub checks: Vec<CheckSpec>,
 }
 
 impl EvalDataset {
@@ -166,7 +166,7 @@ tests:
     }
 
     #[test]
-    fn check_def_preserves_config() {
+    fn check_spec_preserves_config() {
         let yaml = r#"
 name: cfg
 tests:
