@@ -10,9 +10,9 @@ use crate::dataset::{EvalDataset, TestCase};
 /// Options for controlling evaluation behavior.
 #[derive(Debug, Clone)]
 pub struct EvalOptions {
-    /// Maximum number of test cases to run concurrently (default: 1).
+    /// Maximum number of test cases to run concurrently.
     pub concurrency: usize,
-    /// If true, abort the evaluation on the first error (default: false).
+    /// If true, abort the evaluation on the first error.
     /// Only effective when `concurrency` is 1.
     pub fail_fast: bool,
 }
