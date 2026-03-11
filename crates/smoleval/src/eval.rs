@@ -245,6 +245,8 @@ fn mean_score(results: &[CheckResult]) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
     use crate::error::SmolError;
 
@@ -325,6 +327,7 @@ mod tests {
         let report = EvalReport {
             dataset_name: "empty".into(),
             results: vec![],
+            duration: Duration::ZERO,
         };
         assert_eq!(report.mean_score(), 0.0);
         assert_eq!(report.passed_count(), 0);
@@ -345,6 +348,8 @@ mod tests {
                     },
                     check_results: vec![],
                     score: 1.0,
+                    duration: Duration::ZERO,
+                    error: None,
                 },
                 TestCaseResult {
                     test_case: make_test_case("b", "q", vec![]),
@@ -354,8 +359,11 @@ mod tests {
                     },
                     check_results: vec![],
                     score: 1.0,
+                    duration: Duration::ZERO,
+                    error: None,
                 },
             ],
+            duration: Duration::ZERO,
         };
         assert_eq!(report.mean_score(), 1.0);
         assert_eq!(report.passed_count(), 2);
@@ -376,6 +384,8 @@ mod tests {
                     },
                     check_results: vec![],
                     score: 1.0,
+                    duration: Duration::ZERO,
+                    error: None,
                 },
                 TestCaseResult {
                     test_case: make_test_case("b", "q", vec![]),
@@ -385,6 +395,8 @@ mod tests {
                     },
                     check_results: vec![],
                     score: 0.0,
+                    duration: Duration::ZERO,
+                    error: None,
                 },
                 TestCaseResult {
                     test_case: make_test_case("c", "r", vec![]),
@@ -394,8 +406,11 @@ mod tests {
                     },
                     check_results: vec![],
                     score: 0.5,
+                    duration: Duration::ZERO,
+                    error: None,
                 },
             ],
+            duration: Duration::ZERO,
         };
         assert_eq!(report.passed_count(), 1);
         assert_eq!(report.failed_count(), 2);
