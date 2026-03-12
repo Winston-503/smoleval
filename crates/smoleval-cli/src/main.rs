@@ -74,6 +74,7 @@ async fn main() -> Result<()> {
     let options = EvalOptions {
         concurrency: cli.concurrency,
         fail_fast: cli.fail_fast,
+        ..Default::default()
     };
     let report = evaluate_with_options(&agent, &dataset, &registry, &options).await?;
 
