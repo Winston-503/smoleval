@@ -19,6 +19,9 @@ pub enum SmolError {
 
     #[error("invalid check config: {0}")]
     CheckConfig(String),
+
+    #[error("duplicate test case name: {0}")]
+    DuplicateTestName(String),
 }
 
 pub type Result<T> = std::result::Result<T, SmolError>;

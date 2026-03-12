@@ -1,10 +1,30 @@
 use std::collections::HashMap;
+use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
 use crate::Result;
 use crate::agent::AgentResponse;
 use crate::error::SmolError;
+
+// ---------------------------------------------------------------------------
+// CheckLabel — display label for check results
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckLabel {
+    Ok,
+    Fail,
+}
+
+impl fmt::Display for CheckLabel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CheckLabel::Ok => write!(f, "OK"),
+            CheckLabel::Fail => write!(f, "FAIL"),
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // CheckSpec — raw spec from YAML
@@ -82,11 +102,11 @@ impl CheckResult {
         self.score == 1.0
     }
 
-    pub fn label(&self) -> String {
+    pub fn label(&self) -> CheckLabel {
         if self.passed() {
-            "OK".to_string()
+            CheckLabel::Ok
         } else {
-            "FAIL".to_string()
+            CheckLabel::Fail
         }
     }
 }

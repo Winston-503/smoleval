@@ -16,18 +16,17 @@ pub fn format_text(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
             )?;
             writeln!(w, "  {err}")?;
         } else {
-            let status = if result.score == 1.0 { "PASS" } else { "FAIL" };
             writeln!(
                 w,
-                "[{status}] {} ({:.2}) [{:.1}s]",
+                "[{}] {} ({:.2}) [{:.1}s]",
+                result.label(),
                 result.test_case.name,
                 result.score,
                 result.duration.as_secs_f64()
             )?;
 
             for (def, check_result) in result.test_case.checks.iter().zip(&result.check_results) {
-                let icon = if check_result.passed() { "OK" } else { "FAIL" };
-                writeln!(w, "  [{icon}] {}: {}", def.check_type, check_result.reason())?;
+                writeln!(w, "  [{}] {}: {}", check_result.label(), def.check_type, check_result.reason())?;
             }
         }
         writeln!(w)?;
@@ -148,7 +147,7 @@ pub fn format_junit(report: &EvalReport, w: &mut dyn Write) -> std::io::Result<(
                     if !details.is_empty() {
                         details.push('\n');
                     }
-                    details.push_str(&format!("[FAIL] {}: {}", def.check_type, cr.reason()));
+                    details.push_str(&format!("[{}] {}: {}", cr.label(), def.check_type, cr.reason()));
                 }
             }
             writeln!(
