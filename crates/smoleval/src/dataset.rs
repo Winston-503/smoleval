@@ -11,31 +11,33 @@ use crate::error::SmolError;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EvalDataset {
-    /// Human-readable name for this eval suite.
-    pub name: String,
-    /// Optional description.
+    name: String,
     #[serde(default)]
-    pub description: String,
-    /// The test cases.
-    pub tests: Vec<TestCase>,
+    description: String,
+    tests: Vec<TestCase>,
 }
 
 /// A single test case within an evaluation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TestCase {
-    /// Unique name for this test case.
-    pub name: String,
-    /// Optional description of the test case.
+    name: String,
     #[serde(default)]
-    pub description: String,
-    /// The prompt sent to the agent.
-    pub prompt: String,
-    /// Checks to run against the agent's response.
-    pub checks: Vec<CheckSpec>,
+    description: String,
+    prompt: String,
+    checks: Vec<CheckSpec>,
 }
 
 impl EvalDataset {
+    /// Create a new dataset.
+    pub fn new(name: impl Into<String>, description: impl Into<String>, tests: Vec<TestCase>) -> Self {
+        Self {
+            name: name.into(),
+            description: description.into(),
+            tests,
+        }
+    }
+
     /// Load a dataset from a YAML file.
     pub fn from_file(path: &Path) -> Result<Self> {
         let contents = std::fs::read_to_string(path)?;
@@ -53,6 +55,53 @@ impl EvalDataset {
         }
         Ok(dataset)
     }
+
+    /// Human-readable name for this eval suite.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Optional description.
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    /// The test cases.
+    pub fn tests(&self) -> &[TestCase] {
+        &self.tests
+    }
+}
+
+impl TestCase {
+    /// Create a new test case.
+    pub fn new(name: impl Into<String>, prompt: impl Into<String>, checks: Vec<CheckSpec>) -> Self {
+        Self {
+            name: name.into(),
+            description: String::new(),
+            prompt: prompt.into(),
+            checks,
+        }
+    }
+
+    /// Unique name for this test case.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Optional description of the test case.
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    /// The prompt sent to the agent.
+    pub fn prompt(&self) -> &str {
+        &self.prompt
+    }
+
+    /// Checks to run against the agent's response.
+    pub fn checks(&self) -> &[CheckSpec] {
+        &self.checks
+    }
 }
 
 #[cfg(test)]
@@ -69,10 +118,10 @@ tests:
     checks: []
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
-        assert_eq!(ds.name, "minimal");
-        assert_eq!(ds.description, "");
-        assert_eq!(ds.tests.len(), 1);
-        assert_eq!(ds.tests[0].description, "");
+        assert_eq!(ds.name(), "minimal");
+        assert_eq!(ds.description(), "");
+        assert_eq!(ds.tests().len(), 1);
+        assert_eq!(ds.tests()[0].description(), "");
     }
 
     #[test]
@@ -94,14 +143,14 @@ tests:
         values: ["bye"]
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
-        assert_eq!(ds.name, "full");
-        assert_eq!(ds.description, "a full dataset");
-        assert_eq!(ds.tests.len(), 2);
-        assert_eq!(ds.tests[0].name, "t1");
-        assert_eq!(ds.tests[0].description, "first test");
-        assert_eq!(ds.tests[0].checks.len(), 1);
-        assert_eq!(ds.tests[0].checks[0].kind, "responseExactMatch");
-        assert_eq!(ds.tests[1].checks[0].kind, "responseContainsAll");
+        assert_eq!(ds.name(), "full");
+        assert_eq!(ds.description(), "a full dataset");
+        assert_eq!(ds.tests().len(), 2);
+        assert_eq!(ds.tests()[0].name(), "t1");
+        assert_eq!(ds.tests()[0].description(), "first test");
+        assert_eq!(ds.tests()[0].checks().len(), 1);
+        assert_eq!(ds.tests()[0].checks()[0].kind(), "responseExactMatch");
+        assert_eq!(ds.tests()[1].checks()[0].kind(), "responseContainsAll");
     }
 
     #[test]
@@ -111,7 +160,7 @@ name: empty
 tests: []
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
-        assert!(ds.tests.is_empty());
+        assert!(ds.tests().is_empty());
     }
 
     #[test]
@@ -168,9 +217,9 @@ tests:
         let ds = EvalDataset::from_yaml(yaml).unwrap();
         let serialized = serde_yaml::to_string(&ds).unwrap();
         let ds2 = EvalDataset::from_yaml(&serialized).unwrap();
-        assert_eq!(ds.name, ds2.name);
-        assert_eq!(ds.tests.len(), ds2.tests.len());
-        assert_eq!(ds.tests[0].prompt, ds2.tests[0].prompt);
+        assert_eq!(ds.name(), ds2.name());
+        assert_eq!(ds.tests().len(), ds2.tests().len());
+        assert_eq!(ds.tests()[0].prompt(), ds2.tests()[0].prompt());
     }
 
     #[test]
@@ -202,10 +251,10 @@ tests:
         caseSensitive: true
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
-        let check = &ds.tests[0].checks[0];
-        assert_eq!(check.kind, "responseContainsAll");
-        let values = check.config["values"].as_array().unwrap();
+        let check = &ds.tests()[0].checks()[0];
+        assert_eq!(check.kind(), "responseContainsAll");
+        let values = check.config()["values"].as_array().unwrap();
         assert_eq!(values.len(), 2);
-        assert_eq!(check.config["caseSensitive"], true);
+        assert_eq!(check.config()["caseSensitive"], true);
     }
 }

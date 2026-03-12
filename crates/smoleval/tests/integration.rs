@@ -5,13 +5,10 @@ struct EchoAgent;
 
 impl Agent for EchoAgent {
     async fn run(&self, prompt: &str) -> smoleval::Result<AgentResponse> {
-        Ok(AgentResponse {
-            text: prompt.to_string(),
-            tool_calls: vec![ToolCall {
-                name: "echo_tool".to_string(),
-                arguments: serde_json::Value::Null,
-            }],
-        })
+        Ok(AgentResponse::new(
+            prompt,
+            vec![ToolCall::new("echo_tool", serde_json::Value::Null)],
+        ))
     }
 }
 
@@ -19,21 +16,21 @@ impl Agent for EchoAgent {
 async fn load_yaml_and_evaluate() {
     let dataset = EvalDataset::from_file(std::path::Path::new("tests/fixtures/sample_eval.yaml")).unwrap();
 
-    assert_eq!(dataset.name, "Echo Agent Eval");
-    assert_eq!(dataset.tests.len(), 4);
+    assert_eq!(dataset.name(), "Echo Agent Eval");
+    assert_eq!(dataset.tests().len(), 4);
 
     let registry = CheckRegistry::with_builtins();
     let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
 
     assert_eq!(report.total_count(), 4);
     // echoBasic: responseContainsAll + responseExactMatch on "Hello, world!" -> both pass
-    assert_eq!(report.results[0].score, 1.0);
+    assert_eq!(report.results()[0].score(), 1.0);
     // echoKeywords: responseContainsAny ["Paris", "sunny"] on "The weather in Paris is sunny" -> pass
-    assert_eq!(report.results[1].score, 1.0);
+    assert_eq!(report.results()[1].score(), 1.0);
     // echoNoHallucination: responseNotContains ["hallucinated", "made up"] -> pass
-    assert_eq!(report.results[2].score, 1.0);
+    assert_eq!(report.results()[2].score(), 1.0);
     // echoWithTools: toolsUsed ["echo_tool"] atLeast -> pass
-    assert_eq!(report.results[3].score, 1.0);
+    assert_eq!(report.results()[3].score(), 1.0);
 
     assert_eq!(report.mean_score(), 1.0);
     assert_eq!(report.passed_count(), 4);
@@ -58,7 +55,7 @@ tests:
 
     assert_eq!(report.total_count(), 1);
     assert_eq!(report.failed_count(), 1);
-    assert_eq!(report.results[0].score, 0.0);
+    assert_eq!(report.results()[0].score(), 0.0);
 }
 
 #[tokio::test]
