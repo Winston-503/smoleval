@@ -2,7 +2,9 @@
 name = "smoleval-cli"
 version = "0.1.0"
 edition = "2024"
-publish = false
+description = "CLI for smoleval, a minimal evaluation framework for AI agents"
+license = "Apache-2.0"
+repository = "https://github.com/Winston-503/smoleval"
 
 [[bin]]
 name = "smoleval"
