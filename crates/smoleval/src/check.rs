@@ -807,7 +807,10 @@ mod tests {
     #[test]
     fn tool_used_at_least_pass_default_times() {
         let check = ToolUsedAtLeast {
-            matcher: ToolMatcher { name: "search".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
             times: 1,
         };
         assert!(check.run(&response_with_tools("ok", &["search", "other"])).passed());
@@ -816,16 +819,26 @@ mod tests {
     #[test]
     fn tool_used_at_least_pass_multiple() {
         let check = ToolUsedAtLeast {
-            matcher: ToolMatcher { name: "search".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
             times: 2,
         };
-        assert!(check.run(&response_with_tools("ok", &["search", "search", "search"])).passed());
+        assert!(
+            check
+                .run(&response_with_tools("ok", &["search", "search", "search"]))
+                .passed()
+        );
     }
 
     #[test]
     fn tool_used_at_least_fail_not_present() {
         let check = ToolUsedAtLeast {
-            matcher: ToolMatcher { name: "search".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
             times: 1,
         };
         assert!(!check.run(&response_with_tools("ok", &["other"])).passed());
@@ -834,7 +847,10 @@ mod tests {
     #[test]
     fn tool_used_at_least_fail_insufficient() {
         let check = ToolUsedAtLeast {
-            matcher: ToolMatcher { name: "search".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
             times: 3,
         };
         assert!(!check.run(&response_with_tools("ok", &["search", "search"])).passed());
@@ -845,12 +861,16 @@ mod tests {
         let mut params = serde_json::Map::new();
         params.insert("city".into(), serde_json::json!("Paris"));
         let check = ToolUsedAtLeast {
-            matcher: ToolMatcher { name: "weather".into(), parameters: Some(params) },
+            matcher: ToolMatcher {
+                name: "weather".into(),
+                parameters: Some(params),
+            },
             times: 1,
         };
-        let calls = vec![
-            ToolCall::new("weather", serde_json::json!({"city": "Paris", "units": "metric"})),
-        ];
+        let calls = vec![ToolCall::new(
+            "weather",
+            serde_json::json!({"city": "Paris", "units": "metric"}),
+        )];
         assert!(check.run(&response_with_tool_calls("ok", calls)).passed());
     }
 
@@ -859,12 +879,13 @@ mod tests {
         let mut params = serde_json::Map::new();
         params.insert("city".into(), serde_json::json!("Paris"));
         let check = ToolUsedAtLeast {
-            matcher: ToolMatcher { name: "weather".into(), parameters: Some(params) },
+            matcher: ToolMatcher {
+                name: "weather".into(),
+                parameters: Some(params),
+            },
             times: 1,
         };
-        let calls = vec![
-            ToolCall::new("weather", serde_json::json!({"city": "London"})),
-        ];
+        let calls = vec![ToolCall::new("weather", serde_json::json!({"city": "London"}))];
         assert!(!check.run(&response_with_tool_calls("ok", calls)).passed());
     }
 
@@ -873,7 +894,10 @@ mod tests {
     #[test]
     fn tool_used_at_most_pass_zero_calls() {
         let check = ToolUsedAtMost {
-            matcher: ToolMatcher { name: "delete".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "delete".into(),
+                parameters: None,
+            },
             times: 1,
         };
         assert!(check.run(&response_with_tools("ok", &["other"])).passed());
@@ -882,7 +906,10 @@ mod tests {
     #[test]
     fn tool_used_at_most_pass_exact() {
         let check = ToolUsedAtMost {
-            matcher: ToolMatcher { name: "delete".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "delete".into(),
+                parameters: None,
+            },
             times: 1,
         };
         assert!(check.run(&response_with_tools("ok", &["delete"])).passed());
@@ -891,7 +918,10 @@ mod tests {
     #[test]
     fn tool_used_at_most_fail() {
         let check = ToolUsedAtMost {
-            matcher: ToolMatcher { name: "delete".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "delete".into(),
+                parameters: None,
+            },
             times: 1,
         };
         assert!(!check.run(&response_with_tools("ok", &["delete", "delete"])).passed());
@@ -902,7 +932,10 @@ mod tests {
         let mut params = serde_json::Map::new();
         params.insert("force".into(), serde_json::json!(true));
         let check = ToolUsedAtMost {
-            matcher: ToolMatcher { name: "delete".into(), parameters: Some(params) },
+            matcher: ToolMatcher {
+                name: "delete".into(),
+                parameters: Some(params),
+            },
             times: 0,
         };
         // delete called twice, but only one matches params — that's 1 > 0, so fail
@@ -918,16 +951,26 @@ mod tests {
     #[test]
     fn tool_used_exactly_pass() {
         let check = ToolUsedExactly {
-            matcher: ToolMatcher { name: "search".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
             times: 2,
         };
-        assert!(check.run(&response_with_tools("ok", &["search", "other", "search"])).passed());
+        assert!(
+            check
+                .run(&response_with_tools("ok", &["search", "other", "search"]))
+                .passed()
+        );
     }
 
     #[test]
     fn tool_used_exactly_fail_too_few() {
         let check = ToolUsedExactly {
-            matcher: ToolMatcher { name: "search".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
             times: 3,
         };
         assert!(!check.run(&response_with_tools("ok", &["search", "search"])).passed());
@@ -936,7 +979,10 @@ mod tests {
     #[test]
     fn tool_used_exactly_fail_too_many() {
         let check = ToolUsedExactly {
-            matcher: ToolMatcher { name: "search".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
             times: 1,
         };
         assert!(!check.run(&response_with_tools("ok", &["search", "search"])).passed());
@@ -945,7 +991,10 @@ mod tests {
     #[test]
     fn tool_used_exactly_zero_pass() {
         let check = ToolUsedExactly {
-            matcher: ToolMatcher { name: "search".into(), parameters: None },
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
             times: 0,
         };
         assert!(check.run(&response_with_tools("ok", &["other"])).passed());
@@ -962,25 +1011,33 @@ mod tests {
 
     #[test]
     fn tools_used_in_order_pass_exact() {
-        let check = ToolsUsedInOrder { tools: vec!["a".into(), "b".into(), "c".into()] };
+        let check = ToolsUsedInOrder {
+            tools: vec!["a".into(), "b".into(), "c".into()],
+        };
         assert!(check.run(&response_with_tools("ok", &["a", "b", "c"])).passed());
     }
 
     #[test]
     fn tools_used_in_order_pass_with_extras() {
-        let check = ToolsUsedInOrder { tools: vec!["a".into(), "c".into()] };
+        let check = ToolsUsedInOrder {
+            tools: vec!["a".into(), "c".into()],
+        };
         assert!(check.run(&response_with_tools("ok", &["a", "b", "c", "d"])).passed());
     }
 
     #[test]
     fn tools_used_in_order_fail_wrong_order() {
-        let check = ToolsUsedInOrder { tools: vec!["b".into(), "a".into()] };
+        let check = ToolsUsedInOrder {
+            tools: vec!["b".into(), "a".into()],
+        };
         assert!(!check.run(&response_with_tools("ok", &["a", "b"])).passed());
     }
 
     #[test]
     fn tools_used_in_order_fail_missing() {
-        let check = ToolsUsedInOrder { tools: vec!["a".into(), "z".into()] };
+        let check = ToolsUsedInOrder {
+            tools: vec!["a".into(), "z".into()],
+        };
         assert!(!check.run(&response_with_tools("ok", &["a", "b"])).passed());
     }
 
@@ -992,7 +1049,9 @@ mod tests {
 
     #[test]
     fn tools_used_in_order_repeated() {
-        let check = ToolsUsedInOrder { tools: vec!["a".into(), "a".into()] };
+        let check = ToolsUsedInOrder {
+            tools: vec!["a".into(), "a".into()],
+        };
         assert!(check.run(&response_with_tools("ok", &["a", "b", "a"])).passed());
         assert!(!check.run(&response_with_tools("ok", &["a", "b"])).passed());
     }
