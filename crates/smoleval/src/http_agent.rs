@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{Agent, AgentResponse, Result, SmolError};
 
@@ -12,9 +12,22 @@ pub struct HttpAgent {
     url: String,
 }
 
-#[derive(Serialize)]
-struct PromptRequest<'a> {
-    prompt: &'a str,
+/// The JSON body sent to an HTTP agent endpoint: `{"prompt": "..."}`.
+#[derive(Serialize, Deserialize)]
+pub struct PromptRequest {
+    prompt: String,
+}
+
+impl PromptRequest {
+    /// Create a new prompt request.
+    pub fn new(prompt: impl Into<String>) -> Self {
+        Self { prompt: prompt.into() }
+    }
+
+    /// The prompt string.
+    pub fn prompt(&self) -> &str {
+        &self.prompt
+    }
 }
 
 impl HttpAgent {
@@ -43,7 +56,7 @@ impl Agent for HttpAgent {
         let resp = self
             .client
             .post(&self.url)
-            .json(&PromptRequest { prompt })
+            .json(&PromptRequest::new(prompt))
             .send()
             .await
             .map_err(|e| SmolError::AgentError(e.to_string()))?;

@@ -1650,6 +1650,7 @@ dependencies = [
  "rig-core",
  "serde",
  "serde_json",
+ "smoleval",
  "thiserror 2.0.18",
  "tokio",
 ]

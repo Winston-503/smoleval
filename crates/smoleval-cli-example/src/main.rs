@@ -7,19 +7,14 @@ use rig::completion::ToolDefinition;
 use rig::providers::openai;
 use rig::providers::openai::responses_api::ResponsesCompletionModel;
 use rig::tool::{Tool, ToolDyn};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
+use smoleval::{AgentResponse, PromptRequest, ToolCall};
 
 // ---------------------------------------------------------------------------
 // Tool-call recorder: shared between the Rig tool and the HTTP handler
 // ---------------------------------------------------------------------------
-type ToolCallRecorder = Arc<Mutex<Vec<RecordedToolCall>>>;
-
-#[derive(Clone, Serialize)]
-struct RecordedToolCall {
-    name: String,
-    arguments: serde_json::Value,
-}
+type ToolCallRecorder = Arc<Mutex<Vec<ToolCall>>>;
 
 // ---------------------------------------------------------------------------
 // Rig tool: a simple adder that records every invocation
@@ -66,27 +61,12 @@ impl Tool for Adder {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-        self.recorder.lock().unwrap().push(RecordedToolCall {
-            name: "add".to_string(),
-            arguments: json!({"x": args.x, "y": args.y}),
-        });
+        self.recorder
+            .lock()
+            .unwrap()
+            .push(ToolCall::new("add", json!({"x": args.x, "y": args.y})));
         Ok(args.x + args.y)
     }
-}
-
-// ---------------------------------------------------------------------------
-// HTTP types matching the smoleval protocol
-// ---------------------------------------------------------------------------
-#[derive(Deserialize)]
-struct PromptRequest {
-    prompt: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentResponse {
-    text: String,
-    tool_calls: Vec<RecordedToolCall>,
 }
 
 // ---------------------------------------------------------------------------
@@ -105,15 +85,12 @@ async fn handle(State(state): State<AppState>, Json(req): Json<PromptRequest>) -
     // Clear any previous tool call records
     state.recorder.lock().unwrap().clear();
 
-    match state.agent.prompt(&req.prompt).await {
+    match state.agent.prompt(req.prompt()).await {
         Ok(text) => {
             let tool_calls = state.recorder.lock().unwrap().drain(..).collect();
-            Json(AgentResponse { text, tool_calls })
+            Json(AgentResponse::new(text, tool_calls))
         }
-        Err(e) => Json(AgentResponse {
-            text: format!("Error: {e}"),
-            tool_calls: vec![],
-        }),
+        Err(e) => Json(AgentResponse::new(format!("Error: {e}"), vec![])),
     }
 }
 
@@ -157,6 +134,7 @@ async fn main() {
     println!("  cargo run -p smoleval-cli -- \\");
     println!("    --dataset crates/smoleval-cli-example/data/eval_dataset.yaml \\");
     println!("    --agent http://localhost:3825");
+    println!("    --concurrency 2");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
