@@ -26,7 +26,7 @@ pub fn format_text(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
             )?;
 
             for (def, check_result) in result.test_case.checks.iter().zip(&result.check_results) {
-                writeln!(w, "  [{}] {}: {}", check_result.label(), def.check_type, check_result.reason())?;
+                writeln!(w, "  [{}] {}: {}", check_result.label(), def.kind, check_result.reason())?;
             }
         }
         writeln!(w)?;
@@ -80,7 +80,7 @@ pub fn format_json(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
                 "durationSecs": r.duration.as_secs_f64(),
                 "checks": r.test_case.checks.iter().zip(&r.check_results).map(|(def, cr)| {
                     serde_json::json!({
-                        "type": def.check_type,
+                        "kind": def.kind,
                         "score": cr.score(),
                         "passed": cr.passed(),
                         "reason": cr.reason(),
@@ -147,7 +147,7 @@ pub fn format_junit(report: &EvalReport, w: &mut dyn Write) -> std::io::Result<(
                     if !details.is_empty() {
                         details.push('\n');
                     }
-                    details.push_str(&format!("[{}] {}: {}", cr.label(), def.check_type, cr.reason()));
+                    details.push_str(&format!("[{}] {}: {}", cr.label(), def.kind, cr.reason()));
                 }
             }
             writeln!(

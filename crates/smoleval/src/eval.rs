@@ -457,7 +457,7 @@ mod tests {
             "t",
             "hello",
             vec![crate::check::CheckSpec {
-                check_type: "exactMatch".into(),
+                kind: "exactMatch".into(),
                 config: serde_json::json!({"expected": "hello"}),
             }],
         );
@@ -478,11 +478,11 @@ mod tests {
             "hello world",
             vec![
                 crate::check::CheckSpec {
-                    check_type: "containsAll".into(),
+                    kind: "containsAll".into(),
                     config: serde_json::json!({"values": ["hello"]}),
                 },
                 crate::check::CheckSpec {
-                    check_type: "exactMatch".into(),
+                    kind: "exactMatch".into(),
                     config: serde_json::json!({"expected": "wrong"}),
                 },
             ],
@@ -504,7 +504,7 @@ mod tests {
             "t",
             "hello",
             vec![crate::check::CheckSpec {
-                check_type: "doesNotExist".into(),
+                kind: "doesNotExist".into(),
                 config: serde_json::json!({}),
             }],
         );

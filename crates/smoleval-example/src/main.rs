@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!(
                 "  [{}] {}: {}",
                 check_result.label(),
-                check.check_type,
+                check.kind,
                 check_result.reason()
             );
         }
