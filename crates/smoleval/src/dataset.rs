@@ -1,9 +1,11 @@
+use std::collections::HashSet;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
 use crate::Result;
 use crate::check::CheckSpec;
+use crate::error::SmolError;
 
 /// A full evaluation dataset loaded from YAML.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,6 +45,12 @@ impl EvalDataset {
     /// Parse a dataset from a YAML string.
     pub fn from_yaml(yaml: &str) -> Result<Self> {
         let dataset: EvalDataset = serde_yaml::from_str(yaml)?;
+        let mut seen = HashSet::new();
+        for test in &dataset.tests {
+            if !seen.insert(&test.name) {
+                return Err(SmolError::DuplicateTestName(test.name.clone()));
+            }
+        }
         Ok(dataset)
     }
 }
@@ -163,6 +171,22 @@ tests:
         assert_eq!(ds.name, ds2.name);
         assert_eq!(ds.tests.len(), ds2.tests.len());
         assert_eq!(ds.tests[0].prompt, ds2.tests[0].prompt);
+    }
+
+    #[test]
+    fn parse_duplicate_test_names() {
+        let yaml = r#"
+name: dupes
+tests:
+  - name: t1
+    prompt: hello
+    checks: []
+  - name: t1
+    prompt: world
+    checks: []
+"#;
+        let err = EvalDataset::from_yaml(yaml).unwrap_err();
+        assert!(err.to_string().contains("duplicate test case name: t1"));
     }
 
     #[test]
