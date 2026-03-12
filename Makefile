@@ -4,7 +4,7 @@ CLI_DIR := crates/smoleval-cli
 .PHONY: help
 help:  ## Display this help screen
 	@echo -e "\033[1mAvailable commands:\033[0m"
-	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' | sort
+	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' | sort
 
 .PHONY: check
 check:  ## Run cargo check (workspace)
@@ -18,12 +18,10 @@ build:  ## Run cargo build (workspace)
 format:  ## Run cargo fmt (workspace)
 	cargo fmt
 
-.PHONY: clippy
-clippy:  ## Run cargo clippy (workspace)
-	cargo clippy
-
 .PHONY: lint
-lint: format clippy  ## Run format and clippy
+lint:  ## Check formatting and run clippy
+	cargo fmt --check
+	cargo clippy -- -D warnings
 
 .PHONY: dev-lint
 dev-lint: format  ## Run format and clippy --fix to auto-fix errors
@@ -37,8 +35,8 @@ test:  ## Run Rust tests (workspace)
 example:  ## Run the smoleval-example binary
 	cargo run -p smoleval-example
 
-.PHONY: cli-example
-cli-example:  ## Start the Rig agent HTTP server for smoleval-cli
+.PHONY: example-agent
+example-agent:  ## Start the Rig agent HTTP server for smoleval-cli
 	cargo run -p smoleval-cli-example
 
 .PHONY: doc-lib
