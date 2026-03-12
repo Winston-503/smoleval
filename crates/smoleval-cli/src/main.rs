@@ -71,10 +71,9 @@ async fn main() -> Result<()> {
     let timeout = Duration::from_secs(cli.timeout);
     let agent = HttpAgent::with_timeout(&cli.agent, timeout);
 
-    let options = EvalOptions {
-        concurrency: cli.concurrency,
-        fail_fast: cli.fail_fast,
-    };
+    let options = EvalOptions::new()
+        .with_concurrency(cli.concurrency)
+        .with_fail_fast(cli.fail_fast);
     let report = evaluate_with_options(&agent, &dataset, &registry, &options).await?;
 
     if !cli.quiet {

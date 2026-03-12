@@ -7,13 +7,10 @@ impl Agent for MockAgent {
     async fn run(&self, prompt: &str) -> smoleval::Result<AgentResponse> {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
-        Ok(AgentResponse {
-            text: prompt.to_string(),
-            tool_calls: vec![ToolCall {
-                name: "echo_tool".to_string(),
-                arguments: serde_json::Value::Null,
-            }],
-        })
+        Ok(AgentResponse::new(
+            prompt,
+            vec![ToolCall::new("echo_tool", serde_json::Value::Null)],
+        ))
     }
 }
 
@@ -26,11 +23,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let registry = CheckRegistry::with_builtins();
     let report = evaluate(&MockAgent, &dataset, &registry).await?;
 
-    println!("=== {} ===\n", report.dataset_name);
-    for result in &report.results {
-        println!("[{}] {} ({:.2})", result.label(), result.test_case.name, result.score);
-        for (check, check_result) in result.test_case.checks.iter().zip(&result.check_results) {
-            println!("  [{}] {}: {}", check_result.label(), check.kind, check_result.reason());
+    println!("=== {} ===\n", report.dataset_name());
+    for result in report.results() {
+        println!("[{}] {} ({:.2})", result.label(), result.test_case().name(), result.score());
+        for (check, check_result) in result.test_case().checks().iter().zip(result.check_results()) {
+            println!("  [{}] {}: {}", check_result.label(), check.kind(), check_result.reason());
         }
         println!();
     }

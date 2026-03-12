@@ -32,16 +32,34 @@ impl fmt::Display for CheckLabel {
 
 /// A check specification as deserialized from YAML.
 ///
-/// The `type` field selects the [`Check`] implementation from the [`CheckRegistry`];
+/// The `kind` field selects the [`Check`] implementation from the [`CheckRegistry`];
 /// the remaining fields are passed as config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CheckSpec {
-    /// The check kind name.
-    pub kind: String,
-    /// Remaining YAML fields forwarded to the check factory.
+    kind: String,
     #[serde(flatten)]
-    pub config: serde_json::Value,
+    config: serde_json::Value,
+}
+
+impl CheckSpec {
+    /// Create a new check specification.
+    pub fn new(kind: impl Into<String>, config: serde_json::Value) -> Self {
+        Self {
+            kind: kind.into(),
+            config,
+        }
+    }
+
+    /// The check kind name.
+    pub fn kind(&self) -> &str {
+        &self.kind
+    }
+
+    /// The config passed to the check factory.
+    pub fn config(&self) -> &serde_json::Value {
+        &self.config
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -219,9 +237,9 @@ impl ContainsAll {
 impl Check for ContainsAll {
     fn run(&self, response: &AgentResponse) -> CheckResult {
         let text = if self.case_sensitive {
-            response.text.clone()
+            response.text().to_owned()
         } else {
-            response.text.to_lowercase()
+            response.text().to_lowercase()
         };
 
         let missing: Vec<&str> = self
@@ -281,9 +299,9 @@ impl ContainsAny {
 impl Check for ContainsAny {
     fn run(&self, response: &AgentResponse) -> CheckResult {
         let text = if self.case_sensitive {
-            response.text.clone()
+            response.text().to_owned()
         } else {
-            response.text.to_lowercase()
+            response.text().to_lowercase()
         };
 
         let found = self.values.iter().find(|v| {
@@ -342,9 +360,9 @@ impl NotContains {
 impl Check for NotContains {
     fn run(&self, response: &AgentResponse) -> CheckResult {
         let text = if self.case_sensitive {
-            response.text.clone()
+            response.text().to_owned()
         } else {
-            response.text.to_lowercase()
+            response.text().to_lowercase()
         };
 
         let found: Vec<&str> = self
@@ -409,7 +427,7 @@ fn truncate(s: &str, max: usize) -> String {
 
 impl Check for ExactMatch {
     fn run(&self, response: &AgentResponse) -> CheckResult {
-        let text = response.text.trim();
+        let text = response.text().trim();
         if text == self.value.trim() {
             CheckResult::pass(format!("found exact match {:?}", truncate(text, 80)))
         } else {
@@ -461,7 +479,7 @@ impl ToolsUsed {
 
 impl Check for ToolsUsed {
     fn run(&self, response: &AgentResponse) -> CheckResult {
-        let actual_tools: Vec<&str> = response.tool_calls.iter().map(|tc| tc.name.as_str()).collect();
+        let actual_tools: Vec<&str> = response.tool_calls().iter().map(|tc| tc.name()).collect();
 
         match self.strictness {
             ToolStrictness::AtLeast => {
@@ -503,23 +521,17 @@ mod tests {
     use crate::agent::ToolCall;
 
     fn text_response(text: &str) -> AgentResponse {
-        AgentResponse {
-            text: text.to_string(),
-            tool_calls: vec![],
-        }
+        AgentResponse::new(text, vec![])
     }
 
     fn response_with_tools(text: &str, tools: &[&str]) -> AgentResponse {
-        AgentResponse {
-            text: text.to_string(),
-            tool_calls: tools
+        AgentResponse::new(
+            text,
+            tools
                 .iter()
-                .map(|name| ToolCall {
-                    name: name.to_string(),
-                    arguments: serde_json::Value::Null,
-                })
+                .map(|name| ToolCall::new(*name, serde_json::Value::Null))
                 .collect(),
-        }
+        )
     }
 
     // -- CheckResult tests --
@@ -692,10 +704,7 @@ mod tests {
     #[test]
     fn registry_builtins_resolve() {
         let registry = CheckRegistry::with_builtins();
-        let def = CheckSpec {
-            kind: "responseContainsAll".into(),
-            config: serde_json::json!({"values": ["hello"]}),
-        };
+        let def = CheckSpec::new("responseContainsAll", serde_json::json!({"values": ["hello"]}));
         let check = registry.create(&def).unwrap();
         let r = check.run(&text_response("hello world"));
         assert!(r.passed());
@@ -704,10 +713,7 @@ mod tests {
     #[test]
     fn registry_unknown_type() {
         let registry = CheckRegistry::with_builtins();
-        let def = CheckSpec {
-            kind: "nonExistent".into(),
-            config: serde_json::json!({}),
-        };
+        let def = CheckSpec::new("nonExistent", serde_json::json!({}));
         assert!(registry.create(&def).is_err());
     }
 
@@ -811,20 +817,14 @@ mod tests {
     #[test]
     fn registry_empty_cannot_create() {
         let registry = CheckRegistry::new();
-        let def = CheckSpec {
-            kind: "responseContainsAll".into(),
-            config: serde_json::json!({"values": ["hi"]}),
-        };
+        let def = CheckSpec::new("responseContainsAll", serde_json::json!({"values": ["hi"]}));
         assert!(registry.create(&def).is_err());
     }
 
     #[test]
     fn registry_default_is_empty() {
         let registry = CheckRegistry::default();
-        let def = CheckSpec {
-            kind: "responseContainsAll".into(),
-            config: serde_json::json!({"values": ["hi"]}),
-        };
+        let def = CheckSpec::new("responseContainsAll", serde_json::json!({"values": ["hi"]}));
         assert!(registry.create(&def).is_err());
     }
 
@@ -839,10 +839,7 @@ mod tests {
 
         let mut registry = CheckRegistry::new();
         registry.register("alwaysFail", Box::new(|_| Ok(Box::new(AlwaysFail))));
-        let def = CheckSpec {
-            kind: "alwaysFail".into(),
-            config: serde_json::json!({}),
-        };
+        let def = CheckSpec::new("alwaysFail", serde_json::json!({}));
         let check = registry.create(&def).unwrap();
         assert!(!check.run(&text_response("anything")).passed());
     }
@@ -850,10 +847,7 @@ mod tests {
     #[test]
     fn contains_all_invalid_config() {
         let registry = CheckRegistry::with_builtins();
-        let def = CheckSpec {
-            kind: "responseContainsAll".into(),
-            config: serde_json::json!({"wrong_field": 123}),
-        };
+        let def = CheckSpec::new("responseContainsAll", serde_json::json!({"wrong_field": 123}));
         assert!(registry.create(&def).is_err());
     }
 
@@ -869,7 +863,7 @@ mod tests {
     fn check_spec_deserialize() {
         let json = r#"{"kind": "responseContainsAll", "values": ["a"]}"#;
         let def: CheckSpec = serde_json::from_str(json).unwrap();
-        assert_eq!(def.kind, "responseContainsAll");
-        assert_eq!(def.config["values"][0], "a");
+        assert_eq!(def.kind(), "responseContainsAll");
+        assert_eq!(def.config()["values"][0], "a");
     }
 }

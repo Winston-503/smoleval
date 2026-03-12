@@ -30,11 +30,37 @@ impl fmt::Display for TestCaseLabel {
 /// Options for controlling evaluation behavior.
 #[derive(Debug, Clone)]
 pub struct EvalOptions {
+    concurrency: usize,
+    fail_fast: bool,
+}
+
+impl EvalOptions {
+    /// Create a new `EvalOptions` with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the maximum number of test cases to run concurrently.
+    pub fn with_concurrency(mut self, concurrency: usize) -> Self {
+        self.concurrency = concurrency;
+        self
+    }
+
+    /// If true, abort the evaluation on the first error (only effective with concurrency=1).
+    pub fn with_fail_fast(mut self, fail_fast: bool) -> Self {
+        self.fail_fast = fail_fast;
+        self
+    }
+
     /// Maximum number of test cases to run concurrently.
-    pub concurrency: usize,
-    /// If true, abort the evaluation on the first error.
-    /// Only effective when `concurrency` is 1.
-    pub fail_fast: bool,
+    pub fn concurrency(&self) -> usize {
+        self.concurrency
+    }
+
+    /// Whether to abort on the first error.
+    pub fn fail_fast(&self) -> bool {
+        self.fail_fast
+    }
 }
 
 impl Default for EvalOptions {
@@ -49,19 +75,39 @@ impl Default for EvalOptions {
 /// Result for a single test case.
 #[derive(Debug, Clone)]
 pub struct TestCaseResult {
-    /// The test case that was evaluated.
-    pub test_case: TestCase,
-    /// The agent's outcome — either a successful response or an error.
-    pub outcome: AgentOutcome,
-    /// Results for each check (same order as `test_case.checks`).
-    pub check_results: Vec<CheckResult>,
-    /// Overall score (mean of check scores).
-    pub score: f64,
-    /// Wall-clock duration for this test case.
-    pub duration: Duration,
+    test_case: TestCase,
+    outcome: AgentOutcome,
+    check_results: Vec<CheckResult>,
+    score: f64,
+    duration: Duration,
 }
 
 impl TestCaseResult {
+    /// The test case that was evaluated.
+    pub fn test_case(&self) -> &TestCase {
+        &self.test_case
+    }
+
+    /// The agent's outcome — either a successful response or an error.
+    pub fn outcome(&self) -> &AgentOutcome {
+        &self.outcome
+    }
+
+    /// Results for each check (same order as `test_case.checks`).
+    pub fn check_results(&self) -> &[CheckResult] {
+        &self.check_results
+    }
+
+    /// Overall score (mean of check scores).
+    pub fn score(&self) -> f64 {
+        self.score
+    }
+
+    /// Wall-clock duration for this test case.
+    pub fn duration(&self) -> Duration {
+        self.duration
+    }
+
     pub fn label(&self) -> TestCaseLabel {
         if self.score == 1.0 {
             TestCaseLabel::Pass
@@ -74,15 +120,27 @@ impl TestCaseResult {
 /// Report for an entire evaluation run.
 #[derive(Debug, Clone)]
 pub struct EvalReport {
-    /// Name of the dataset.
-    pub dataset_name: String,
-    /// Per-test-case results.
-    pub results: Vec<TestCaseResult>,
-    /// Total wall-clock duration of the evaluation run.
-    pub duration: Duration,
+    dataset_name: String,
+    results: Vec<TestCaseResult>,
+    duration: Duration,
 }
 
 impl EvalReport {
+    /// Name of the dataset.
+    pub fn dataset_name(&self) -> &str {
+        &self.dataset_name
+    }
+
+    /// Per-test-case results.
+    pub fn results(&self) -> &[TestCaseResult] {
+        &self.results
+    }
+
+    /// Total wall-clock duration of the evaluation run.
+    pub fn duration(&self) -> Duration {
+        self.duration
+    }
+
     /// Mean score across all test cases.
     pub fn mean_score(&self) -> f64 {
         if self.results.is_empty() {
@@ -146,7 +204,7 @@ pub async fn evaluate_with_options<A: Agent>(
     };
 
     Ok(EvalReport {
-        dataset_name: dataset.name.clone(),
+        dataset_name: dataset.name().to_owned(),
         results,
         duration: start.elapsed(),
     })
@@ -158,9 +216,9 @@ async fn evaluate_sequential<A: Agent>(
     registry: &CheckRegistry,
     fail_fast: bool,
 ) -> Result<Vec<TestCaseResult>> {
-    let mut results = Vec::with_capacity(dataset.tests.len());
+    let mut results = Vec::with_capacity(dataset.tests().len());
 
-    for test_case in &dataset.tests {
+    for test_case in dataset.tests() {
         let start = Instant::now();
         match run_single(agent, test_case, registry).await {
             Ok((response, check_results, score)) => {
@@ -196,7 +254,7 @@ async fn evaluate_concurrent<A: Agent>(
     registry: &CheckRegistry,
     concurrency: usize,
 ) -> Vec<TestCaseResult> {
-    stream::iter(&dataset.tests)
+    stream::iter(dataset.tests())
         .map(|test_case| async move {
             let start = Instant::now();
             let result = run_single(agent, test_case, registry).await;
@@ -228,7 +286,7 @@ async fn run_single<A: Agent>(
     test_case: &TestCase,
     registry: &CheckRegistry,
 ) -> Result<(AgentResponse, Vec<CheckResult>, f64)> {
-    let response = agent.run(&test_case.prompt).await?;
+    let response = agent.run(test_case.prompt()).await?;
     let check_results = run_checks(test_case, &response, registry)?;
     let score = mean_score(&check_results);
     Ok((response, check_results, score))
@@ -236,7 +294,7 @@ async fn run_single<A: Agent>(
 
 fn run_checks(test_case: &TestCase, response: &AgentResponse, registry: &CheckRegistry) -> Result<Vec<CheckResult>> {
     test_case
-        .checks
+        .checks()
         .iter()
         .map(|def| {
             let check = registry.create(def)?;
@@ -258,16 +316,14 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
+    use crate::check::CheckSpec;
     use crate::error::SmolError;
 
     struct EchoAgent;
 
     impl Agent for EchoAgent {
         async fn run(&self, prompt: &str) -> crate::Result<AgentResponse> {
-            Ok(AgentResponse {
-                text: prompt.to_string(),
-                tool_calls: vec![],
-            })
+            Ok(AgentResponse::new(prompt, vec![]))
         }
     }
 
@@ -280,20 +336,11 @@ mod tests {
     }
 
     fn make_dataset(name: &str, tests: Vec<TestCase>) -> EvalDataset {
-        EvalDataset {
-            name: name.into(),
-            description: String::new(),
-            tests,
-        }
+        EvalDataset::new(name, "", tests)
     }
 
-    fn make_test_case(name: &str, prompt: &str, checks: Vec<crate::check::CheckSpec>) -> TestCase {
-        TestCase {
-            name: name.into(),
-            description: String::new(),
-            prompt: prompt.into(),
-            checks,
-        }
+    fn make_test_case(name: &str, prompt: &str, checks: Vec<CheckSpec>) -> TestCase {
+        TestCase::new(name, prompt, checks)
     }
 
     // -- mean_score tests --
@@ -349,20 +396,14 @@ mod tests {
             results: vec![
                 TestCaseResult {
                     test_case: make_test_case("a", "p", vec![]),
-                    outcome: AgentOutcome::Response(AgentResponse {
-                        text: "p".into(),
-                        tool_calls: vec![],
-                    }),
+                    outcome: AgentOutcome::Response(AgentResponse::new("p", vec![])),
                     check_results: vec![],
                     score: 1.0,
                     duration: Duration::ZERO,
                 },
                 TestCaseResult {
                     test_case: make_test_case("b", "q", vec![]),
-                    outcome: AgentOutcome::Response(AgentResponse {
-                        text: "q".into(),
-                        tool_calls: vec![],
-                    }),
+                    outcome: AgentOutcome::Response(AgentResponse::new("q", vec![])),
                     check_results: vec![],
                     score: 1.0,
                     duration: Duration::ZERO,
@@ -383,30 +424,21 @@ mod tests {
             results: vec![
                 TestCaseResult {
                     test_case: make_test_case("a", "p", vec![]),
-                    outcome: AgentOutcome::Response(AgentResponse {
-                        text: "p".into(),
-                        tool_calls: vec![],
-                    }),
+                    outcome: AgentOutcome::Response(AgentResponse::new("p", vec![])),
                     check_results: vec![],
                     score: 1.0,
                     duration: Duration::ZERO,
                 },
                 TestCaseResult {
                     test_case: make_test_case("b", "q", vec![]),
-                    outcome: AgentOutcome::Response(AgentResponse {
-                        text: "q".into(),
-                        tool_calls: vec![],
-                    }),
+                    outcome: AgentOutcome::Response(AgentResponse::new("q", vec![])),
                     check_results: vec![],
                     score: 0.0,
                     duration: Duration::ZERO,
                 },
                 TestCaseResult {
                     test_case: make_test_case("c", "r", vec![]),
-                    outcome: AgentOutcome::Response(AgentResponse {
-                        text: "r".into(),
-                        tool_calls: vec![],
-                    }),
+                    outcome: AgentOutcome::Response(AgentResponse::new("r", vec![])),
                     check_results: vec![],
                     score: 0.5,
                     duration: Duration::ZERO,
@@ -425,10 +457,7 @@ mod tests {
     #[test]
     fn run_checks_no_checks() {
         let tc = make_test_case("t", "hello", vec![]);
-        let response = AgentResponse {
-            text: "hello".into(),
-            tool_calls: vec![],
-        };
+        let response = AgentResponse::new("hello", vec![]);
         let registry = CheckRegistry::with_builtins();
         let results = run_checks(&tc, &response, &registry).unwrap();
         assert!(results.is_empty());
@@ -439,15 +468,9 @@ mod tests {
         let tc = make_test_case(
             "t",
             "hello",
-            vec![crate::check::CheckSpec {
-                kind: "responseExactMatch".into(),
-                config: serde_json::json!({"value": "hello"}),
-            }],
+            vec![CheckSpec::new("responseExactMatch", serde_json::json!({"value": "hello"}))],
         );
-        let response = AgentResponse {
-            text: "hello".into(),
-            tool_calls: vec![],
-        };
+        let response = AgentResponse::new("hello", vec![]);
         let registry = CheckRegistry::with_builtins();
         let results = run_checks(&tc, &response, &registry).unwrap();
         assert_eq!(results.len(), 1);
@@ -460,20 +483,11 @@ mod tests {
             "t",
             "hello world",
             vec![
-                crate::check::CheckSpec {
-                    kind: "responseContainsAll".into(),
-                    config: serde_json::json!({"values": ["hello"]}),
-                },
-                crate::check::CheckSpec {
-                    kind: "responseExactMatch".into(),
-                    config: serde_json::json!({"value": "wrong"}),
-                },
+                CheckSpec::new("responseContainsAll", serde_json::json!({"values": ["hello"]})),
+                CheckSpec::new("responseExactMatch", serde_json::json!({"value": "wrong"})),
             ],
         );
-        let response = AgentResponse {
-            text: "hello world".into(),
-            tool_calls: vec![],
-        };
+        let response = AgentResponse::new("hello world", vec![]);
         let registry = CheckRegistry::with_builtins();
         let results = run_checks(&tc, &response, &registry).unwrap();
         assert_eq!(results.len(), 2);
@@ -486,15 +500,9 @@ mod tests {
         let tc = make_test_case(
             "t",
             "hello",
-            vec![crate::check::CheckSpec {
-                kind: "doesNotExist".into(),
-                config: serde_json::json!({}),
-            }],
+            vec![CheckSpec::new("doesNotExist", serde_json::json!({}))],
         );
-        let response = AgentResponse {
-            text: "hello".into(),
-            tool_calls: vec![],
-        };
+        let response = AgentResponse::new("hello", vec![]);
         let registry = CheckRegistry::with_builtins();
         assert!(run_checks(&tc, &response, &registry).is_err());
     }
@@ -515,7 +523,7 @@ mod tests {
         let dataset = make_dataset("test", vec![make_test_case("t1", "hello", vec![])]);
         let registry = CheckRegistry::with_builtins();
         let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
-        assert_eq!(report.results[0].score, 1.0);
+        assert_eq!(report.results()[0].score(), 1.0);
     }
 
     #[tokio::test]
@@ -531,6 +539,6 @@ mod tests {
         let dataset = make_dataset("test", vec![make_test_case("t1", "my prompt", vec![])]);
         let registry = CheckRegistry::with_builtins();
         let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
-        assert_eq!(report.results[0].outcome.response().unwrap().text, "my prompt");
+        assert_eq!(report.results()[0].outcome().response().unwrap().text(), "my prompt");
     }
 }
