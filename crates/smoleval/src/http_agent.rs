@@ -1,7 +1,8 @@
 use std::time::Duration;
 
 use serde::Serialize;
-use smoleval::{Agent, AgentResponse, Result, SmolError};
+
+use crate::{Agent, AgentResponse, Result, SmolError};
 
 /// Simple HTTP JSON agent connector.
 ///
