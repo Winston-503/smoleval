@@ -18,12 +18,10 @@ build:  ## Run cargo build (workspace)
 format:  ## Run cargo fmt (workspace)
 	cargo fmt
 
-.PHONY: clippy
-clippy:  ## Run cargo clippy (workspace)
-	cargo clippy
-
 .PHONY: lint
-lint: format clippy  ## Run format and clippy
+lint:  ## Check formatting and run clippy
+	cargo fmt --check
+	cargo clippy -- -D warnings
 
 .PHONY: dev-lint
 dev-lint: format  ## Run format and clippy --fix to auto-fix errors
