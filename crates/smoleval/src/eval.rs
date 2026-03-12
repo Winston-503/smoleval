@@ -8,6 +8,9 @@ use crate::agent::{Agent, AgentOutcome, AgentResponse};
 use crate::check::{CheckRegistry, CheckResult};
 use crate::dataset::{EvalDataset, TestCase};
 
+/// Callback type invoked after each test case completes.
+type OnResultCallback = Box<dyn Fn(&TestCaseResult) + Send + Sync>;
+
 // ---------------------------------------------------------------------------
 // TestCaseLabel — display label for test case results
 // ---------------------------------------------------------------------------
@@ -28,10 +31,10 @@ impl fmt::Display for TestCaseLabel {
 }
 
 /// Options for controlling evaluation behavior.
-#[derive(Debug, Clone)]
 pub struct EvalOptions {
     concurrency: usize,
     fail_fast: bool,
+    on_result: Option<OnResultCallback>,
 }
 
 impl EvalOptions {
@@ -52,6 +55,12 @@ impl EvalOptions {
         self
     }
 
+    /// Set the callback invoked after each test case completes.
+    pub fn with_on_result(mut self, on_result: impl Fn(&TestCaseResult) + Send + Sync + 'static) -> Self {
+        self.on_result = Some(Box::new(on_result));
+        self
+    }
+
     /// Maximum number of test cases to run concurrently.
     pub fn concurrency(&self) -> usize {
         self.concurrency
@@ -63,11 +72,22 @@ impl EvalOptions {
     }
 }
 
+impl fmt::Debug for EvalOptions {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EvalOptions")
+            .field("concurrency", &self.concurrency)
+            .field("fail_fast", &self.fail_fast)
+            .field("on_result", &self.on_result.as_ref().map(|_| ".."))
+            .finish()
+    }
+}
+
 impl Default for EvalOptions {
     fn default() -> Self {
         Self {
             concurrency: 1,
             fail_fast: false,
+            on_result: None,
         }
     }
 }
@@ -176,10 +196,7 @@ impl EvalReport {
 /// For each test case: sends the prompt to the agent, runs all checks from
 /// the registry, and collects results into an [`EvalReport`].
 pub async fn evaluate<A: Agent>(agent: &A, dataset: &EvalDataset, registry: &CheckRegistry) -> Result<EvalReport> {
-    let options = EvalOptions {
-        concurrency: 1,
-        fail_fast: true,
-    };
+    let options = EvalOptions::new().with_fail_fast(true);
     evaluate_with_options(agent, dataset, registry, &options).await
 }
 
@@ -198,9 +215,9 @@ pub async fn evaluate_with_options<A: Agent>(
     let concurrency = options.concurrency.max(1);
 
     let results = if concurrency <= 1 {
-        evaluate_sequential(agent, dataset, registry, options.fail_fast).await?
+        evaluate_sequential(agent, dataset, registry, options.fail_fast, &options.on_result).await?
     } else {
-        evaluate_concurrent(agent, dataset, registry, concurrency).await
+        evaluate_concurrent(agent, dataset, registry, concurrency, &options.on_result).await
     };
 
     Ok(EvalReport {
@@ -215,34 +232,37 @@ async fn evaluate_sequential<A: Agent>(
     dataset: &EvalDataset,
     registry: &CheckRegistry,
     fail_fast: bool,
+    on_result: &Option<OnResultCallback>,
 ) -> Result<Vec<TestCaseResult>> {
     let mut results = Vec::with_capacity(dataset.tests().len());
 
     for test_case in dataset.tests() {
         let start = Instant::now();
-        match run_single(agent, test_case, registry).await {
-            Ok((response, check_results, score)) => {
-                results.push(TestCaseResult {
-                    test_case: test_case.clone(),
-                    outcome: AgentOutcome::Response(response),
-                    check_results,
-                    score,
-                    duration: start.elapsed(),
-                });
-            }
+        let result = match run_single(agent, test_case, registry).await {
+            Ok((response, check_results, score)) => TestCaseResult {
+                test_case: test_case.clone(),
+                outcome: AgentOutcome::Response(response),
+                check_results,
+                score,
+                duration: start.elapsed(),
+            },
             Err(e) => {
                 if fail_fast {
                     return Err(e);
                 }
-                results.push(TestCaseResult {
+                TestCaseResult {
                     test_case: test_case.clone(),
                     outcome: AgentOutcome::Error(e.to_string()),
                     check_results: vec![],
                     score: 0.0,
                     duration: start.elapsed(),
-                });
+                }
             }
+        };
+        if let Some(cb) = on_result {
+            cb(&result);
         }
+        results.push(result);
     }
 
     Ok(results)
@@ -253,8 +273,10 @@ async fn evaluate_concurrent<A: Agent>(
     dataset: &EvalDataset,
     registry: &CheckRegistry,
     concurrency: usize,
+    on_result: &Option<OnResultCallback>,
 ) -> Vec<TestCaseResult> {
-    stream::iter(dataset.tests())
+    let mut results = Vec::with_capacity(dataset.tests().len());
+    let mut stream = stream::iter(dataset.tests())
         .map(|test_case| async move {
             let start = Instant::now();
             let result = run_single(agent, test_case, registry).await;
@@ -276,9 +298,16 @@ async fn evaluate_concurrent<A: Agent>(
                 },
             }
         })
-        .buffered(concurrency)
-        .collect()
-        .await
+        .buffered(concurrency);
+
+    while let Some(result) = stream.next().await {
+        if let Some(cb) = on_result {
+            cb(&result);
+        }
+        results.push(result);
+    }
+
+    results
 }
 
 async fn run_single<A: Agent>(
@@ -468,7 +497,10 @@ mod tests {
         let tc = make_test_case(
             "t",
             "hello",
-            vec![CheckSpec::new("responseExactMatch", serde_json::json!({"value": "hello"}))],
+            vec![CheckSpec::new(
+                "responseExactMatch",
+                serde_json::json!({"value": "hello"}),
+            )],
         );
         let response = AgentResponse::new("hello", vec![]);
         let registry = CheckRegistry::with_builtins();

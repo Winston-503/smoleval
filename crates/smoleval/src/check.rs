@@ -321,12 +321,7 @@ impl Check for ContainsAny {
 
         match found {
             Some(v) => CheckResult::pass(format!("found {:?} in response {case_suffix}", v)),
-            None => {
-                CheckResult::fail(format!(
-                    "none of {:?} found in response {case_suffix}",
-                    self.values
-                ))
-            }
+            None => CheckResult::fail(format!("none of {:?} found in response {case_suffix}", self.values)),
         }
     }
 }
@@ -386,10 +381,7 @@ impl Check for NotContains {
         };
 
         if found.is_empty() {
-            CheckResult::pass(format!(
-                "none of {:?} found in response {case_suffix}",
-                self.values
-            ))
+            CheckResult::pass(format!("none of {:?} found in response {case_suffix}", self.values))
         } else {
             CheckResult::fail(format!("found {:?} in response {case_suffix}", found))
         }
@@ -643,17 +635,13 @@ mod tests {
 
     #[test]
     fn exact_match_pass() {
-        let check = ExactMatch {
-            value: "hello".into(),
-        };
+        let check = ExactMatch { value: "hello".into() };
         assert!(check.run(&text_response("hello")).passed());
     }
 
     #[test]
     fn exact_match_fail() {
-        let check = ExactMatch {
-            value: "hello".into(),
-        };
+        let check = ExactMatch { value: "hello".into() };
         assert!(!check.run(&text_response("Hello")).passed());
     }
 

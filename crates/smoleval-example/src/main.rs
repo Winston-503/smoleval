@@ -1,4 +1,4 @@
-use smoleval::{Agent, AgentResponse, CheckRegistry, EvalDataset, ToolCall, evaluate};
+use smoleval::{Agent, AgentResponse, CheckRegistry, EvalDataset, EvalOptions, ToolCall, evaluate_with_options};
 
 /// A mock agent that echoes its input after 1 sec delay and always calls an "echo_tool"
 struct MockAgent;
@@ -21,16 +21,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let dataset = EvalDataset::from_yaml(&yaml)?;
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&MockAgent, &dataset, &registry).await?;
 
-    println!("=== {} ===\n", report.dataset_name());
-    for result in report.results() {
-        println!("[{}] {} ({:.2})", result.label(), result.test_case().name(), result.score());
+    println!("=== {} ===\n", dataset.name());
+
+    let options = EvalOptions::new().with_on_result(|result| {
+        println!(
+            "[{}] {} ({:.2})",
+            result.label(),
+            result.test_case().name(),
+            result.score()
+        );
         for (check, check_result) in result.test_case().checks().iter().zip(result.check_results()) {
-            println!("  [{}] {}: {}", check_result.label(), check.kind(), check_result.reason());
+            println!(
+                "  [{}] {}: {}",
+                check_result.label(),
+                check.kind(),
+                check_result.reason()
+            );
         }
         println!();
-    }
+    });
+
+    let report = evaluate_with_options(&MockAgent, &dataset, &registry, &options).await?;
+
     println!(
         "Results: {}/{} passed | Mean score: {:.2}",
         report.passed_count(),
