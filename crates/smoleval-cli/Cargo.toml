@@ -10,7 +10,6 @@ path = "src/main.rs"
 
 [dependencies]
 smoleval = { workspace = true }
-smoleval-http = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }

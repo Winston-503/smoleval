@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
-use smoleval::{CheckRegistry, EvalDataset, EvalOptions, evaluate_with_options};
+use smoleval::{CheckRegistry, EvalDataset, EvalOptions, HttpAgent, evaluate_with_options};
 
 #[derive(Clone, Debug, ValueEnum)]
 enum OutputFormat {
@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
     let registry = CheckRegistry::with_builtins();
 
     let timeout = Duration::from_secs(cli.timeout);
-    let agent = smoleval_http::HttpAgent::with_timeout(&cli.agent, timeout);
+    let agent = HttpAgent::with_timeout(&cli.agent, timeout);
 
     let options = EvalOptions {
         concurrency: cli.concurrency,
