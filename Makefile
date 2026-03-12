@@ -35,9 +35,13 @@ test:  ## Run Rust tests (workspace)
 example:  ## Run the smoleval-example binary
 	cargo run -p smoleval-example
 
-.PHONY: example-agent
-example-agent:  ## Start the Rig agent HTTP server for smoleval-cli
+.PHONY: example-rig-agent
+example-rig-agent:  ## Start the Rig agent HTTP server for smoleval-cli
 	cargo run -p smoleval-cli-example
+
+.PHONY: example-langchain-agent
+example-langchain-agent:  ## Start the LangGraph agent HTTP server for smoleval-cli
+	uv run crates/smoleval-cli-example/agent.py
 
 .PHONY: doc-lib
 doc-lib:  ## Run cargo doc for smoleval lib
