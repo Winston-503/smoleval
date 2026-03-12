@@ -16,9 +16,8 @@ tests:
     checks:
       - kind: responseContainsAny
         values: ["tools", "something"]
-      - kind: toolsUsed
-        tools: ["echo_tool"]
-        strictness: atLeast
+      - kind: toolUsedAtLeast
+        name: "echo_tool"
 
   - name: noHallucination
     prompt: |

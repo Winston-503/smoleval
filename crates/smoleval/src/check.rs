@@ -169,7 +169,10 @@ impl CheckRegistry {
         registry.register("responseContainsAny", Box::new(ContainsAny::from_config));
         registry.register("responseNotContains", Box::new(NotContains::from_config));
         registry.register("responseExactMatch", Box::new(ExactMatch::from_config));
-        registry.register("toolsUsed", Box::new(ToolsUsed::from_config));
+        registry.register("toolUsedAtLeast", Box::new(ToolUsedAtLeast::from_config));
+        registry.register("toolUsedAtMost", Box::new(ToolUsedAtMost::from_config));
+        registry.register("toolUsedExactly", Box::new(ToolUsedExactly::from_config));
+        registry.register("toolsUsedInOrder", Box::new(ToolsUsedInOrder::from_config));
         registry
     }
 
@@ -432,77 +435,227 @@ impl Check for ExactMatch {
     }
 }
 
-// --- ToolsUsed ---
+// --- ToolMatcher (shared helper for count-based tool checks) ---
 
-/// How strictly to match tool usage.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ToolStrictness {
-    /// Agent must have used at least these tools (may use others).
-    #[default]
-    AtLeast,
-    /// Agent must have used exactly these tools (no more, no fewer).
-    Exact,
+use crate::agent::ToolCall;
+
+/// Matches a tool call by name and optionally by a subset of its parameters.
+#[derive(Debug)]
+struct ToolMatcher {
+    name: String,
+    /// When set, each key/value must appear in the tool call's arguments.
+    parameters: Option<serde_json::Map<String, serde_json::Value>>,
 }
+
+impl ToolMatcher {
+    fn matches(&self, tc: &ToolCall) -> bool {
+        if tc.name() != self.name {
+            return false;
+        }
+        if let Some(ref expected) = self.parameters {
+            let actual = tc.arguments();
+            for (key, val) in expected {
+                match actual.get(key) {
+                    Some(actual_val) if actual_val == val => {}
+                    _ => return false,
+                }
+            }
+        }
+        true
+    }
+
+    fn count_matches(&self, tool_calls: &[ToolCall]) -> usize {
+        tool_calls.iter().filter(|tc| self.matches(tc)).count()
+    }
+}
+
+fn default_one() -> usize {
+    1
+}
+
+// --- ToolUsedAtLeast ---
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ToolsUsedConfig {
-    tools: Vec<String>,
+struct ToolUsedAtLeastConfig {
+    name: String,
     #[serde(default)]
-    strictness: ToolStrictness,
+    parameters: Option<serde_json::Map<String, serde_json::Value>>,
+    #[serde(default = "default_one")]
+    times: usize,
 }
 
-/// Check that the agent called specific tools.
-pub struct ToolsUsed {
-    tools: Vec<String>,
-    strictness: ToolStrictness,
+/// Check that a tool was used at least N times.
+pub struct ToolUsedAtLeast {
+    matcher: ToolMatcher,
+    times: usize,
 }
 
-impl ToolsUsed {
+impl ToolUsedAtLeast {
     fn from_config(config: &serde_json::Value) -> Result<Box<dyn Check>> {
-        let cfg: ToolsUsedConfig = parse_config(config)?;
+        let cfg: ToolUsedAtLeastConfig = parse_config(config)?;
         Ok(Box::new(Self {
-            tools: cfg.tools,
-            strictness: cfg.strictness,
+            matcher: ToolMatcher {
+                name: cfg.name,
+                parameters: cfg.parameters,
+            },
+            times: cfg.times,
         }))
     }
 }
 
-impl Check for ToolsUsed {
+impl Check for ToolUsedAtLeast {
     fn run(&self, response: &AgentResponse) -> CheckResult {
-        let actual_tools: Vec<&str> = response.tool_calls().iter().map(|tc| tc.name()).collect();
+        let count = self.matcher.count_matches(response.tool_calls());
+        if count >= self.times {
+            CheckResult::pass(format!(
+                "tool {:?} used {} time(s) (>= {})",
+                self.matcher.name, count, self.times
+            ))
+        } else {
+            CheckResult::fail(format!(
+                "tool {:?} used {} time(s), expected at least {}",
+                self.matcher.name, count, self.times
+            ))
+        }
+    }
+}
 
-        match self.strictness {
-            ToolStrictness::AtLeast => {
-                let missing: Vec<&str> = self
-                    .tools
-                    .iter()
-                    .filter(|t| !actual_tools.contains(&t.as_str()))
-                    .map(|t| t.as_str())
-                    .collect();
+// --- ToolUsedAtMost ---
 
-                if missing.is_empty() {
-                    CheckResult::pass(format!("agent used {:?}", actual_tools))
-                } else {
-                    CheckResult::fail(format!("missing tools {:?}, agent used {:?}", missing, actual_tools))
-                }
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ToolUsedAtMostConfig {
+    name: String,
+    #[serde(default)]
+    parameters: Option<serde_json::Map<String, serde_json::Value>>,
+    #[serde(default = "default_one")]
+    times: usize,
+}
+
+/// Check that a tool was used at most N times.
+pub struct ToolUsedAtMost {
+    matcher: ToolMatcher,
+    times: usize,
+}
+
+impl ToolUsedAtMost {
+    fn from_config(config: &serde_json::Value) -> Result<Box<dyn Check>> {
+        let cfg: ToolUsedAtMostConfig = parse_config(config)?;
+        Ok(Box::new(Self {
+            matcher: ToolMatcher {
+                name: cfg.name,
+                parameters: cfg.parameters,
+            },
+            times: cfg.times,
+        }))
+    }
+}
+
+impl Check for ToolUsedAtMost {
+    fn run(&self, response: &AgentResponse) -> CheckResult {
+        let count = self.matcher.count_matches(response.tool_calls());
+        if count <= self.times {
+            CheckResult::pass(format!(
+                "tool {:?} used {} time(s) (<= {})",
+                self.matcher.name, count, self.times
+            ))
+        } else {
+            CheckResult::fail(format!(
+                "tool {:?} used {} time(s), expected at most {}",
+                self.matcher.name, count, self.times
+            ))
+        }
+    }
+}
+
+// --- ToolUsedExactly ---
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ToolUsedExactlyConfig {
+    name: String,
+    #[serde(default)]
+    parameters: Option<serde_json::Map<String, serde_json::Value>>,
+    times: usize, // required — no default
+}
+
+/// Check that a tool was used exactly N times.
+pub struct ToolUsedExactly {
+    matcher: ToolMatcher,
+    times: usize,
+}
+
+impl ToolUsedExactly {
+    fn from_config(config: &serde_json::Value) -> Result<Box<dyn Check>> {
+        let cfg: ToolUsedExactlyConfig = parse_config(config)?;
+        Ok(Box::new(Self {
+            matcher: ToolMatcher {
+                name: cfg.name,
+                parameters: cfg.parameters,
+            },
+            times: cfg.times,
+        }))
+    }
+}
+
+impl Check for ToolUsedExactly {
+    fn run(&self, response: &AgentResponse) -> CheckResult {
+        let count = self.matcher.count_matches(response.tool_calls());
+        if count == self.times {
+            CheckResult::pass(format!(
+                "tool {:?} used exactly {} time(s)",
+                self.matcher.name, self.times
+            ))
+        } else {
+            CheckResult::fail(format!(
+                "tool {:?} used {} time(s), expected exactly {}",
+                self.matcher.name, count, self.times
+            ))
+        }
+    }
+}
+
+// --- ToolsUsedInOrder ---
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ToolsUsedInOrderConfig {
+    tools: Vec<String>,
+}
+
+/// Check that tools were used in a specific order (allows other tools in between).
+pub struct ToolsUsedInOrder {
+    tools: Vec<String>,
+}
+
+impl ToolsUsedInOrder {
+    fn from_config(config: &serde_json::Value) -> Result<Box<dyn Check>> {
+        let cfg: ToolsUsedInOrderConfig = parse_config(config)?;
+        Ok(Box::new(Self { tools: cfg.tools }))
+    }
+}
+
+impl Check for ToolsUsedInOrder {
+    fn run(&self, response: &AgentResponse) -> CheckResult {
+        let actual = response.tool_calls();
+        let mut cursor = 0;
+        for tc in actual {
+            if cursor < self.tools.len() && tc.name() == self.tools[cursor] {
+                cursor += 1;
             }
-            ToolStrictness::Exact => {
-                let mut expected_sorted = self.tools.clone();
-                expected_sorted.sort();
-                let mut actual_sorted: Vec<String> = actual_tools.iter().map(|s| s.to_string()).collect();
-                actual_sorted.sort();
-
-                if expected_sorted == actual_sorted {
-                    CheckResult::pass(format!("agent used exactly {:?}", actual_tools))
-                } else {
-                    CheckResult::fail(format!(
-                        "expected exactly {:?}, agent used {:?}",
-                        self.tools, actual_tools
-                    ))
-                }
-            }
+        }
+        if cursor == self.tools.len() {
+            CheckResult::pass(format!("tools used in order: {:?}", self.tools))
+        } else {
+            let actual_names: Vec<&str> = actual.iter().map(|tc| tc.name()).collect();
+            CheckResult::fail(format!(
+                "expected tools in order {:?}, got {:?} (matched {}/{})",
+                self.tools,
+                actual_names,
+                cursor,
+                self.tools.len()
+            ))
         }
     }
 }
@@ -645,46 +798,262 @@ mod tests {
         assert!(!check.run(&text_response("Hello")).passed());
     }
 
-    // -- ToolsUsed tests --
+    // -- ToolUsedAtLeast tests --
 
-    #[test]
-    fn tools_used_at_least_pass() {
-        let check = ToolsUsed {
-            tools: vec!["get_weather".into()],
-            strictness: ToolStrictness::AtLeast,
-        };
-        let r = check.run(&response_with_tools("sunny", &["get_weather", "format"]));
-        assert!(r.passed());
+    fn response_with_tool_calls(text: &str, calls: Vec<ToolCall>) -> AgentResponse {
+        AgentResponse::new(text, calls)
     }
 
     #[test]
-    fn tools_used_at_least_fail() {
-        let check = ToolsUsed {
-            tools: vec!["get_weather".into()],
-            strictness: ToolStrictness::AtLeast,
+    fn tool_used_at_least_pass_default_times() {
+        let check = ToolUsedAtLeast {
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
+            times: 1,
         };
-        let r = check.run(&response_with_tools("sunny", &[]));
-        assert!(!r.passed());
+        assert!(check.run(&response_with_tools("ok", &["search", "other"])).passed());
     }
 
     #[test]
-    fn tools_used_exact_pass() {
-        let check = ToolsUsed {
-            tools: vec!["a".into(), "b".into()],
-            strictness: ToolStrictness::Exact,
+    fn tool_used_at_least_pass_multiple() {
+        let check = ToolUsedAtLeast {
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
+            times: 2,
         };
-        let r = check.run(&response_with_tools("ok", &["b", "a"]));
-        assert!(r.passed());
+        assert!(
+            check
+                .run(&response_with_tools("ok", &["search", "search", "search"]))
+                .passed()
+        );
     }
 
     #[test]
-    fn tools_used_exact_fail_extra() {
-        let check = ToolsUsed {
-            tools: vec!["a".into()],
-            strictness: ToolStrictness::Exact,
+    fn tool_used_at_least_fail_not_present() {
+        let check = ToolUsedAtLeast {
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
+            times: 1,
         };
-        let r = check.run(&response_with_tools("ok", &["a", "b"]));
-        assert!(!r.passed());
+        assert!(!check.run(&response_with_tools("ok", &["other"])).passed());
+    }
+
+    #[test]
+    fn tool_used_at_least_fail_insufficient() {
+        let check = ToolUsedAtLeast {
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
+            times: 3,
+        };
+        assert!(!check.run(&response_with_tools("ok", &["search", "search"])).passed());
+    }
+
+    #[test]
+    fn tool_used_at_least_with_params_pass() {
+        let mut params = serde_json::Map::new();
+        params.insert("city".into(), serde_json::json!("Paris"));
+        let check = ToolUsedAtLeast {
+            matcher: ToolMatcher {
+                name: "weather".into(),
+                parameters: Some(params),
+            },
+            times: 1,
+        };
+        let calls = vec![ToolCall::new(
+            "weather",
+            serde_json::json!({"city": "Paris", "units": "metric"}),
+        )];
+        assert!(check.run(&response_with_tool_calls("ok", calls)).passed());
+    }
+
+    #[test]
+    fn tool_used_at_least_with_params_fail() {
+        let mut params = serde_json::Map::new();
+        params.insert("city".into(), serde_json::json!("Paris"));
+        let check = ToolUsedAtLeast {
+            matcher: ToolMatcher {
+                name: "weather".into(),
+                parameters: Some(params),
+            },
+            times: 1,
+        };
+        let calls = vec![ToolCall::new("weather", serde_json::json!({"city": "London"}))];
+        assert!(!check.run(&response_with_tool_calls("ok", calls)).passed());
+    }
+
+    // -- ToolUsedAtMost tests --
+
+    #[test]
+    fn tool_used_at_most_pass_zero_calls() {
+        let check = ToolUsedAtMost {
+            matcher: ToolMatcher {
+                name: "delete".into(),
+                parameters: None,
+            },
+            times: 1,
+        };
+        assert!(check.run(&response_with_tools("ok", &["other"])).passed());
+    }
+
+    #[test]
+    fn tool_used_at_most_pass_exact() {
+        let check = ToolUsedAtMost {
+            matcher: ToolMatcher {
+                name: "delete".into(),
+                parameters: None,
+            },
+            times: 1,
+        };
+        assert!(check.run(&response_with_tools("ok", &["delete"])).passed());
+    }
+
+    #[test]
+    fn tool_used_at_most_fail() {
+        let check = ToolUsedAtMost {
+            matcher: ToolMatcher {
+                name: "delete".into(),
+                parameters: None,
+            },
+            times: 1,
+        };
+        assert!(!check.run(&response_with_tools("ok", &["delete", "delete"])).passed());
+    }
+
+    #[test]
+    fn tool_used_at_most_with_params() {
+        let mut params = serde_json::Map::new();
+        params.insert("force".into(), serde_json::json!(true));
+        let check = ToolUsedAtMost {
+            matcher: ToolMatcher {
+                name: "delete".into(),
+                parameters: Some(params),
+            },
+            times: 0,
+        };
+        // delete called twice, but only one matches params — that's 1 > 0, so fail
+        let calls = vec![
+            ToolCall::new("delete", serde_json::json!({"force": true})),
+            ToolCall::new("delete", serde_json::json!({"force": false})),
+        ];
+        assert!(!check.run(&response_with_tool_calls("ok", calls)).passed());
+    }
+
+    // -- ToolUsedExactly tests --
+
+    #[test]
+    fn tool_used_exactly_pass() {
+        let check = ToolUsedExactly {
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
+            times: 2,
+        };
+        assert!(
+            check
+                .run(&response_with_tools("ok", &["search", "other", "search"]))
+                .passed()
+        );
+    }
+
+    #[test]
+    fn tool_used_exactly_fail_too_few() {
+        let check = ToolUsedExactly {
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
+            times: 3,
+        };
+        assert!(!check.run(&response_with_tools("ok", &["search", "search"])).passed());
+    }
+
+    #[test]
+    fn tool_used_exactly_fail_too_many() {
+        let check = ToolUsedExactly {
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
+            times: 1,
+        };
+        assert!(!check.run(&response_with_tools("ok", &["search", "search"])).passed());
+    }
+
+    #[test]
+    fn tool_used_exactly_zero_pass() {
+        let check = ToolUsedExactly {
+            matcher: ToolMatcher {
+                name: "search".into(),
+                parameters: None,
+            },
+            times: 0,
+        };
+        assert!(check.run(&response_with_tools("ok", &["other"])).passed());
+    }
+
+    #[test]
+    fn tool_used_exactly_config_requires_times() {
+        let registry = CheckRegistry::with_builtins();
+        let def = CheckSpec::new("toolUsedExactly", serde_json::json!({"name": "search"}));
+        assert!(registry.create(&def).is_err());
+    }
+
+    // -- ToolsUsedInOrder tests --
+
+    #[test]
+    fn tools_used_in_order_pass_exact() {
+        let check = ToolsUsedInOrder {
+            tools: vec!["a".into(), "b".into(), "c".into()],
+        };
+        assert!(check.run(&response_with_tools("ok", &["a", "b", "c"])).passed());
+    }
+
+    #[test]
+    fn tools_used_in_order_pass_with_extras() {
+        let check = ToolsUsedInOrder {
+            tools: vec!["a".into(), "c".into()],
+        };
+        assert!(check.run(&response_with_tools("ok", &["a", "b", "c", "d"])).passed());
+    }
+
+    #[test]
+    fn tools_used_in_order_fail_wrong_order() {
+        let check = ToolsUsedInOrder {
+            tools: vec!["b".into(), "a".into()],
+        };
+        assert!(!check.run(&response_with_tools("ok", &["a", "b"])).passed());
+    }
+
+    #[test]
+    fn tools_used_in_order_fail_missing() {
+        let check = ToolsUsedInOrder {
+            tools: vec!["a".into(), "z".into()],
+        };
+        assert!(!check.run(&response_with_tools("ok", &["a", "b"])).passed());
+    }
+
+    #[test]
+    fn tools_used_in_order_empty_passes() {
+        let check = ToolsUsedInOrder { tools: vec![] };
+        assert!(check.run(&response_with_tools("ok", &["a"])).passed());
+    }
+
+    #[test]
+    fn tools_used_in_order_repeated() {
+        let check = ToolsUsedInOrder {
+            tools: vec!["a".into(), "a".into()],
+        };
+        assert!(check.run(&response_with_tools("ok", &["a", "b", "a"])).passed());
+        assert!(!check.run(&response_with_tools("ok", &["a", "b"])).passed());
     }
 
     // -- CheckRegistry tests --
@@ -775,31 +1144,22 @@ mod tests {
         assert!(check.run(&text_response("anything")).passed());
     }
 
+    // -- Registry tests for new tool checks --
+
     #[test]
-    fn tools_used_at_least_empty_required() {
-        let check = ToolsUsed {
-            tools: vec![],
-            strictness: ToolStrictness::AtLeast,
-        };
-        assert!(check.run(&response_with_tools("ok", &["a"])).passed());
+    fn registry_tool_used_at_least_from_config() {
+        let registry = CheckRegistry::with_builtins();
+        let def = CheckSpec::new("toolUsedAtLeast", serde_json::json!({"name": "search"}));
+        let check = registry.create(&def).unwrap();
+        assert!(check.run(&response_with_tools("ok", &["search"])).passed());
     }
 
     #[test]
-    fn tools_used_exact_both_empty() {
-        let check = ToolsUsed {
-            tools: vec![],
-            strictness: ToolStrictness::Exact,
-        };
-        assert!(check.run(&response_with_tools("ok", &[])).passed());
-    }
-
-    #[test]
-    fn tools_used_exact_fail_missing() {
-        let check = ToolsUsed {
-            tools: vec!["a".into(), "b".into()],
-            strictness: ToolStrictness::Exact,
-        };
-        assert!(!check.run(&response_with_tools("ok", &["a"])).passed());
+    fn registry_tools_used_in_order_from_config() {
+        let registry = CheckRegistry::with_builtins();
+        let def = CheckSpec::new("toolsUsedInOrder", serde_json::json!({"tools": ["a", "b"]}));
+        let check = registry.create(&def).unwrap();
+        assert!(check.run(&response_with_tools("ok", &["a", "x", "b"])).passed());
     }
 
     #[test]

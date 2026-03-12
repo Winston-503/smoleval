@@ -7,7 +7,7 @@ pub mod eval;
 pub mod http_agent;
 
 pub use agent::{Agent, AgentOutcome, AgentResponse, ToolCall};
-pub use check::{Check, CheckLabel, CheckRegistry, CheckResult, CheckSpec, ToolStrictness};
+pub use check::{Check, CheckLabel, CheckRegistry, CheckResult, CheckSpec};
 pub use dataset::{EvalDataset, TestCase};
 pub use error::{Result, SmolError};
 pub use eval::{

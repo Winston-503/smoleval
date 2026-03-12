@@ -35,7 +35,7 @@ async fn load_yaml_and_evaluate() {
     assert_eq!(report.results()[1].score(), 1.0);
     // echoNoHallucination: responseNotContains ["hallucinated", "made up"] -> pass
     assert_eq!(report.results()[2].score(), 1.0);
-    // echoWithTools: toolsUsed ["echo_tool"] atLeast -> pass
+    // echoWithTools: toolUsedAtLeast "echo_tool" (times: 1 default) -> pass
     assert_eq!(report.results()[3].score(), 1.0);
 
     assert_eq!(report.mean_score(), 1.0);
@@ -423,20 +423,20 @@ tests:
 }
 
 // ---------------------------------------------------------------------------
-// toolsUsed check variants
+// tool check variants
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
-async fn tools_used_exact_strictness_pass() {
+async fn tool_used_exactly_pass() {
     let yaml = r#"
-name: "Tools Exact"
+name: "Tool Used Exactly"
 tests:
-  - name: exactTools
+  - name: exactTool
     prompt: "use tools"
     checks:
-      - kind: toolsUsed
-        tools: ["echo_tool"]
-        strictness: exact
+      - kind: toolUsedExactly
+        name: "echo_tool"
+        times: 1
 "#;
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
@@ -447,17 +447,17 @@ tests:
 }
 
 #[tokio::test]
-async fn tools_used_exact_strictness_fail_extra_tool() {
-    // EchoAgent always returns ["echo_tool"], so requiring exact ["other_tool"] should fail
+async fn tool_used_exactly_fail_wrong_tool() {
+    // EchoAgent always returns ["echo_tool"], so requiring "other_tool" exactly 1 time should fail
     let yaml = r#"
-name: "Tools Exact Fail"
+name: "Tool Used Exactly Fail"
 tests:
   - name: wrongTool
     prompt: "use tools"
     checks:
-      - kind: toolsUsed
-        tools: ["other_tool"]
-        strictness: exact
+      - kind: toolUsedExactly
+        name: "other_tool"
+        times: 1
 "#;
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
@@ -468,17 +468,17 @@ tests:
 }
 
 #[tokio::test]
-async fn tools_used_at_least_with_extra_tools() {
-    // EchoAgent returns ["echo_tool"], requiring atLeast [] should pass
+async fn tool_used_at_least_with_zero_times() {
+    // EchoAgent returns ["echo_tool"], requiring atLeast 0 times for any tool should pass
     let yaml = r#"
-name: "Tools AtLeast"
+name: "Tool AtLeast Zero"
 tests:
-  - name: atLeastEmpty
+  - name: atLeastZero
     prompt: "use tools"
     checks:
-      - kind: toolsUsed
-        tools: []
-        strictness: atLeast
+      - kind: toolUsedAtLeast
+        name: "nonexistent_tool"
+        times: 0
 "#;
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();

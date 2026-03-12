@@ -7,9 +7,8 @@ tests:
     checks:
       - kind: responseContainsAny
         values: ["5", "five"]
-      - kind: toolsUsed
-        tools: ["add"]
-        strictness: atLeast
+      - kind: toolUsedAtLeast
+        name: "add"
 
   - name: largerAddition
     prompt: |
@@ -17,9 +16,8 @@ tests:
     checks:
       - kind: responseContainsAll
         values: ["350"]
-      - kind: toolsUsed
-        tools: ["add"]
-        strictness: atLeast
+      - kind: toolUsedAtLeast
+        name: "add"
 
   - name: noHallucination
     prompt: |

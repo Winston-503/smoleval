@@ -8,7 +8,7 @@ Define test cases in YAML, implement the `Agent` trait for your system, and get 
 
 - YAML-driven evaluation datasets
 - Pluggable `Agent` trait — back it with an HTTP API, local model, or a mock
-- Registry-based check system with five built-in validators
+- Registry-based check system with pluggable built-in validators
 - Structured reports with per-test scores (0.0–1.0) and aggregate metrics
 - Optional HTTP agent client (enabled by default via `http` feature)
 
@@ -32,9 +32,8 @@ tests:
       - kind: responseContainsAny
         values: ["Paris"]
         caseSensitive: true
-      - kind: toolsUsed
-        tools: ["get_weather"]
-        strictness: atLeast
+      - kind: toolUsedAtLeast
+        name: "get_weather"
 ```
 
 ### Run an evaluation
@@ -74,7 +73,10 @@ async fn main() {
 | `responseContainsAny`  | Response contains at least one of the specified values        |
 | `responseNotContains`  | Response does not contain any of the specified values         |
 | `responseExactMatch`   | Response exactly matches the expected value                   |
-| `toolsUsed`            | Agent called specific tools (`atLeast` or `exact` strictness) |
+| `toolUsedAtLeast`      | Tool was used at least N times (optional parameter matching)  |
+| `toolUsedAtMost`       | Tool was used at most N times (optional parameter matching)   |
+| `toolUsedExactly`      | Tool was used exactly N times (optional parameter matching)   |
+| `toolsUsedInOrder`     | Tools were used in a specific order (allows gaps)             |
 
 ## License
 
