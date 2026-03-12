@@ -35,7 +35,7 @@ async fn load_yaml_and_evaluate() {
     assert_eq!(report.results()[1].score(), 1.0);
     // echoNoHallucination: responseNotContains ["hallucinated", "made up"] -> pass
     assert_eq!(report.results()[2].score(), 1.0);
-    // echoWithTools: toolsUsed ["echo_tool"] atLeast -> pass
+    // echoWithTools: toolUsedAtLeast "echo_tool" (times: 1 default) -> pass
     assert_eq!(report.results()[3].score(), 1.0);
 
     assert_eq!(report.mean_score(), 1.0);

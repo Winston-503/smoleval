@@ -25,6 +25,5 @@ tests:
   - name: echoWithTools
     prompt: "Use tools"
     checks:
-      - kind: toolsUsed
-        tools: ["echo_tool"]
-        strictness: atLeast
+      - kind: toolUsedAtLeast
+        name: "echo_tool"
