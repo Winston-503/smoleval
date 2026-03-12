@@ -85,12 +85,12 @@ tests:
     description: first test
     prompt: say hi
     checks:
-      - type: exactMatch
+      - kind: exactMatch
         expected: hi
   - name: t2
     prompt: say bye
     checks:
-      - type: containsAll
+      - kind: containsAll
         values: ["bye"]
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
@@ -100,8 +100,8 @@ tests:
         assert_eq!(ds.tests[0].name, "t1");
         assert_eq!(ds.tests[0].description, "first test");
         assert_eq!(ds.tests[0].checks.len(), 1);
-        assert_eq!(ds.tests[0].checks[0].check_type, "exactMatch");
-        assert_eq!(ds.tests[1].checks[0].check_type, "containsAll");
+        assert_eq!(ds.tests[0].checks[0].kind, "exactMatch");
+        assert_eq!(ds.tests[1].checks[0].kind, "containsAll");
     }
 
     #[test]
@@ -162,7 +162,7 @@ tests:
   - name: t1
     prompt: hello
     checks:
-      - type: exactMatch
+      - kind: exactMatch
         expected: hello
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
@@ -197,13 +197,13 @@ tests:
   - name: t1
     prompt: test
     checks:
-      - type: containsAll
+      - kind: containsAll
         values: ["a", "b"]
         caseSensitive: true
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
         let check = &ds.tests[0].checks[0];
-        assert_eq!(check.check_type, "containsAll");
+        assert_eq!(check.kind, "containsAll");
         let values = check.config["values"].as_array().unwrap();
         assert_eq!(values.len(), 2);
         assert_eq!(check.config["caseSensitive"], true);

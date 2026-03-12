@@ -48,7 +48,7 @@ tests:
   - name: failCase
     prompt: "hello"
     checks:
-      - type: containsAll
+      - kind: containsAll
         values: ["missing_keyword"]
 "#;
 
@@ -80,7 +80,7 @@ tests:
   - name: customTest
     prompt: "anything"
     checks:
-      - type: alwaysPass
+      - kind: alwaysPass
 "#;
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();

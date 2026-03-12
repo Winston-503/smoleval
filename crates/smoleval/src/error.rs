@@ -14,7 +14,7 @@ pub enum SmolError {
     #[error("invalid check score {0}: must be between 0.0 and 1.0")]
     InvalidScore(f64),
 
-    #[error("unknown check type: {0}")]
+    #[error("unknown check kind: {0}")]
     UnknownCheck(String),
 
     #[error("invalid check config: {0}")]
@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn unknown_check_display() {
         let err = SmolError::UnknownCheck("fooCheck".into());
-        assert_eq!(err.to_string(), "unknown check type: fooCheck");
+        assert_eq!(err.to_string(), "unknown check kind: fooCheck");
     }
 
     #[test]

@@ -5,26 +5,26 @@ tests:
     description: "Agent should echo the input"
     prompt: "Hello, world!"
     checks:
-      - type: containsAll
+      - kind: containsAll
         values: ["Hello", "world"]
-      - type: exactMatch
+      - kind: exactMatch
         expected: "Hello, world!"
 
   - name: echoKeywords
     prompt: "The weather in Paris is sunny"
     checks:
-      - type: containsAny
+      - kind: containsAny
         values: ["Paris", "sunny"]
 
   - name: echoNoHallucination
     prompt: "Simple response"
     checks:
-      - type: notContains
+      - kind: notContains
         values: ["hallucinated", "made up"]
 
   - name: echoWithTools
     prompt: "Use tools"
     checks:
-      - type: toolsUsed
+      - kind: toolsUsed
         tools: ["echo_tool"]
         strictness: atLeast
