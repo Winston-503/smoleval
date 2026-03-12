@@ -200,7 +200,7 @@ impl Default for CheckRegistry {
 // Helper: parse config JSON into a typed struct
 // ---------------------------------------------------------------------------
 
-fn parse_config<T: serde::de::DeserializeOwned>(config: &serde_json::Value) -> Result<T> {
+pub fn parse_config<T: serde::de::DeserializeOwned>(config: &serde_json::Value) -> Result<T> {
     serde_json::from_value(config.clone()).map_err(|e| SmolError::CheckConfig(e.to_string()))
 }
 
