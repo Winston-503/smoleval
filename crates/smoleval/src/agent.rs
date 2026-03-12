@@ -24,6 +24,40 @@ pub struct AgentResponse {
     pub tool_calls: Vec<ToolCall>,
 }
 
+/// The outcome of running an agent on a prompt.
+///
+/// Either a successful [`AgentResponse`] or an error message.
+#[derive(Debug, Clone)]
+pub enum AgentOutcome {
+    /// The agent returned a response successfully.
+    Response(AgentResponse),
+    /// The agent (or check creation) failed with this error message.
+    Error(String),
+}
+
+impl AgentOutcome {
+    /// Returns `true` if this outcome is an error.
+    pub fn is_error(&self) -> bool {
+        matches!(self, AgentOutcome::Error(_))
+    }
+
+    /// Returns the response if successful, or `None`.
+    pub fn response(&self) -> Option<&AgentResponse> {
+        match self {
+            AgentOutcome::Response(r) => Some(r),
+            AgentOutcome::Error(_) => None,
+        }
+    }
+
+    /// Returns the error message if failed, or `None`.
+    pub fn error(&self) -> Option<&str> {
+        match self {
+            AgentOutcome::Error(e) => Some(e),
+            AgentOutcome::Response(_) => None,
+        }
+    }
+}
+
 /// Trait that agent connectors implement.
 pub trait Agent: Send + Sync {
     fn run(&self, prompt: &str) -> impl Future<Output = Result<AgentResponse>> + Send;

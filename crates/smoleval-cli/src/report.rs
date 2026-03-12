@@ -7,7 +7,7 @@ pub fn format_text(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
     writeln!(w, "=== {} ===\n", report.dataset_name)?;
 
     for result in &report.results {
-        if let Some(ref err) = result.error {
+        if let Some(err) = result.outcome.error() {
             writeln!(
                 w,
                 "[ERROR] {} [{:.1}s]",
@@ -93,7 +93,7 @@ pub fn format_json(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
                     })
                 }).collect::<Vec<_>>(),
             });
-            if let Some(ref err) = r.error {
+            if let Some(err) = r.outcome.error() {
                 obj["error"] = serde_json::json!(err);
             }
             obj
@@ -109,7 +109,7 @@ pub fn format_junit(report: &EvalReport, w: &mut dyn Write) -> std::io::Result<(
     let failures = report
         .results
         .iter()
-        .filter(|r| r.error.is_none() && r.score < 1.0)
+        .filter(|r| !r.outcome.is_error() && r.score < 1.0)
         .count();
     let errors = report.errored_count();
 
@@ -140,7 +140,7 @@ pub fn format_junit(report: &EvalReport, w: &mut dyn Write) -> std::io::Result<(
             result.duration.as_secs_f64()
         )?;
 
-        if let Some(ref err) = result.error {
+        if let Some(err) = result.outcome.error() {
             writeln!(w, ">")?;
             writeln!(w, r#"      <error message="{}" />"#, xml_escape(err))?;
             writeln!(w, "    </testcase>")?;

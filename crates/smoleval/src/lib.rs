@@ -6,7 +6,7 @@ pub mod eval;
 #[cfg(feature = "http")]
 pub mod http_agent;
 
-pub use agent::{Agent, AgentResponse, ToolCall};
+pub use agent::{Agent, AgentOutcome, AgentResponse, ToolCall};
 pub use check::{Check, CheckLabel, CheckRegistry, CheckResult, CheckSpec, ToolStrictness};
 pub use dataset::{EvalDataset, TestCase};
 pub use error::{Result, SmolError};
