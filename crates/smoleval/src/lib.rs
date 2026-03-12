@@ -14,4 +14,4 @@ pub use eval::{
     EvalOptions, EvalReport, TestCaseLabel, TestCaseResult, evaluate, evaluate_with_options, print_on_result,
 };
 #[cfg(feature = "http")]
-pub use http_agent::HttpAgent;
+pub use http_agent::{HttpAgent, PromptRequest};

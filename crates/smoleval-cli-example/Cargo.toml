@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
+smoleval = { workspace = true }
 rig-core = "0.32"
 axum = "0.8"
 tokio = { workspace = true }
