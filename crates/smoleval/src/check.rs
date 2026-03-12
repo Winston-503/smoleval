@@ -147,10 +147,10 @@ impl CheckRegistry {
     /// Create a registry preloaded with all built-in checks.
     pub fn with_builtins() -> Self {
         let mut registry = Self::new();
-        registry.register("containsAll", Box::new(ContainsAll::from_config));
-        registry.register("containsAny", Box::new(ContainsAny::from_config));
-        registry.register("notContains", Box::new(NotContains::from_config));
-        registry.register("exactMatch", Box::new(ExactMatch::from_config));
+        registry.register("responseContainsAll", Box::new(ContainsAll::from_config));
+        registry.register("responseContainsAny", Box::new(ContainsAny::from_config));
+        registry.register("responseNotContains", Box::new(NotContains::from_config));
+        registry.register("responseExactMatch", Box::new(ExactMatch::from_config));
         registry.register("toolsUsed", Box::new(ToolsUsed::from_config));
         registry
     }
@@ -238,10 +238,16 @@ impl Check for ContainsAll {
             .map(|v| v.as_str())
             .collect();
 
-        if missing.is_empty() {
-            CheckResult::pass(format!("found all of {:?}", self.values))
+        let case_suffix = if self.case_sensitive {
+            "(case-sensitive)"
         } else {
-            CheckResult::fail(format!("missing {:?} in response", missing))
+            "(case-insensitive)"
+        };
+
+        if missing.is_empty() {
+            CheckResult::pass(format!("found all of {:?} in response {case_suffix}", self.values))
+        } else {
+            CheckResult::fail(format!("missing {:?} in response {case_suffix}", missing))
         }
     }
 }
@@ -289,9 +295,20 @@ impl Check for ContainsAny {
             text.contains(&needle)
         });
 
+        let case_suffix = if self.case_sensitive {
+            "(case-sensitive)"
+        } else {
+            "(case-insensitive)"
+        };
+
         match found {
-            Some(v) => CheckResult::pass(format!("found {:?}", v)),
-            None => CheckResult::fail(format!("none of {:?} found in response", self.values)),
+            Some(v) => CheckResult::pass(format!("found {:?} in response {case_suffix}", v)),
+            None => {
+                CheckResult::fail(format!(
+                    "none of {:?} found in response {case_suffix}",
+                    self.values
+                ))
+            }
         }
     }
 }
@@ -344,10 +361,19 @@ impl Check for NotContains {
             .map(|v| v.as_str())
             .collect();
 
-        if found.is_empty() {
-            CheckResult::pass(format!("none of {:?} found in response", self.values))
+        let case_suffix = if self.case_sensitive {
+            "(case-sensitive)"
         } else {
-            CheckResult::fail(format!("found {:?} in response", found))
+            "(case-insensitive)"
+        };
+
+        if found.is_empty() {
+            CheckResult::pass(format!(
+                "none of {:?} found in response {case_suffix}",
+                self.values
+            ))
+        } else {
+            CheckResult::fail(format!("found {:?} in response {case_suffix}", found))
         }
     }
 }
@@ -357,27 +383,41 @@ impl Check for NotContains {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ExactMatchConfig {
-    expected: String,
+    value: String,
 }
 
 /// Check that the response text exactly matches the expected string.
 pub struct ExactMatch {
-    expected: String,
+    value: String,
 }
 
 impl ExactMatch {
     fn from_config(config: &serde_json::Value) -> Result<Box<dyn Check>> {
         let cfg: ExactMatchConfig = parse_config(config)?;
-        Ok(Box::new(Self { expected: cfg.expected }))
+        Ok(Box::new(Self { value: cfg.value }))
+    }
+}
+
+/// Truncate a string to `max` characters, appending `…` if truncated.
+fn truncate(s: &str, max: usize) -> String {
+    if s.len() <= max {
+        s.to_string()
+    } else {
+        format!("{}…", &s[..max])
     }
 }
 
 impl Check for ExactMatch {
     fn run(&self, response: &AgentResponse) -> CheckResult {
-        if response.text == self.expected {
-            CheckResult::pass("exact match".to_string())
+        let text = response.text.trim();
+        if text == self.value.trim() {
+            CheckResult::pass(format!("found exact match {:?}", truncate(text, 80)))
         } else {
-            CheckResult::fail(format!("expected {:?}, got {:?}", self.expected, response.text))
+            CheckResult::fail(format!(
+                "expected {:?}, got {:?}",
+                truncate(self.value.trim(), 80),
+                truncate(text, 80)
+            ))
         }
     }
 }
@@ -592,7 +632,7 @@ mod tests {
     #[test]
     fn exact_match_pass() {
         let check = ExactMatch {
-            expected: "hello".into(),
+            value: "hello".into(),
         };
         assert!(check.run(&text_response("hello")).passed());
     }
@@ -600,7 +640,7 @@ mod tests {
     #[test]
     fn exact_match_fail() {
         let check = ExactMatch {
-            expected: "hello".into(),
+            value: "hello".into(),
         };
         assert!(!check.run(&text_response("Hello")).passed());
     }
@@ -653,7 +693,7 @@ mod tests {
     fn registry_builtins_resolve() {
         let registry = CheckRegistry::with_builtins();
         let def = CheckSpec {
-            kind: "containsAll".into(),
+            kind: "responseContainsAll".into(),
             config: serde_json::json!({"values": ["hello"]}),
         };
         let check = registry.create(&def).unwrap();
@@ -772,7 +812,7 @@ mod tests {
     fn registry_empty_cannot_create() {
         let registry = CheckRegistry::new();
         let def = CheckSpec {
-            kind: "containsAll".into(),
+            kind: "responseContainsAll".into(),
             config: serde_json::json!({"values": ["hi"]}),
         };
         assert!(registry.create(&def).is_err());
@@ -782,7 +822,7 @@ mod tests {
     fn registry_default_is_empty() {
         let registry = CheckRegistry::default();
         let def = CheckSpec {
-            kind: "containsAll".into(),
+            kind: "responseContainsAll".into(),
             config: serde_json::json!({"values": ["hi"]}),
         };
         assert!(registry.create(&def).is_err());
@@ -811,7 +851,7 @@ mod tests {
     fn contains_all_invalid_config() {
         let registry = CheckRegistry::with_builtins();
         let def = CheckSpec {
-            kind: "containsAll".into(),
+            kind: "responseContainsAll".into(),
             config: serde_json::json!({"wrong_field": 123}),
         };
         assert!(registry.create(&def).is_err());
@@ -819,16 +859,17 @@ mod tests {
 
     #[test]
     fn exact_match_empty_string() {
-        let check = ExactMatch { expected: "".into() };
+        let check = ExactMatch { value: "".into() };
         assert!(check.run(&text_response("")).passed());
-        assert!(!check.run(&text_response(" ")).passed());
+        // whitespace-only trimmed to "" matches "" after trim
+        assert!(check.run(&text_response(" ")).passed());
     }
 
     #[test]
     fn check_spec_deserialize() {
-        let json = r#"{"kind": "containsAll", "values": ["a"]}"#;
+        let json = r#"{"kind": "responseContainsAll", "values": ["a"]}"#;
         let def: CheckSpec = serde_json::from_str(json).unwrap();
-        assert_eq!(def.kind, "containsAll");
+        assert_eq!(def.kind, "responseContainsAll");
         assert_eq!(def.config["values"][0], "a");
     }
 }

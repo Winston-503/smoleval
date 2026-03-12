@@ -31,9 +31,10 @@ tests:
   - name: basicLookup
     prompt: "What's the weather in Paris?"
     checks:
-      - type: containsAny
-        values: ["Paris", "paris"]
-      - type: toolsUsed
+      - kind: responseContainsAny
+        values: ["Paris"]
+        caseSensitive: true
+      - kind: toolsUsed
         tools: ["get_weather"]
         strictness: atLeast
 ```
@@ -70,13 +71,13 @@ async fn main() {
 
 ## Built-in checks
 
-| Check         | Description                                                   |
-|---------------|---------------------------------------------------------------|
-| `containsAll` | Response contains all specified values                        |
-| `containsAny` | Response contains at least one of the specified values        |
-| `notContains` | Response does not contain any of the specified values         |
-| `exactMatch`  | Response exactly matches the expected value                   |
-| `toolsUsed`   | Agent called specific tools (`atLeast` or `exact` strictness) |
+| Check                  | Description                                                   |
+|------------------------|---------------------------------------------------------------|
+| `responseContainsAll`  | Response contains all specified values                        |
+| `responseContainsAny`  | Response contains at least one of the specified values        |
+| `responseNotContains`  | Response does not contain any of the specified values         |
+| `responseExactMatch`   | Response exactly matches the expected value                   |
+| `toolsUsed`            | Agent called specific tools (`atLeast` or `exact` strictness) |
 
 ## Workspace crates
 

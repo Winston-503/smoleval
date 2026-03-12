@@ -5,16 +5,16 @@ tests:
     prompt: |
       Hello, world!
     checks:
-      - kind: containsAll
+      - kind: responseContainsAll
         values: ["Hello", "world"]
-      - kind: exactMatch
-        expected: "Hello World!!!"
+      - kind: responseExactMatch
+        value: "Hello World!!!"
 
   - name: checkToolUsage
     prompt: |
       Do something with tools
     checks:
-      - kind: containsAny
+      - kind: responseContainsAny
         values: ["tools", "something"]
       - kind: toolsUsed
         tools: ["echo_tool"]
@@ -24,5 +24,5 @@ tests:
     prompt: |
       This input doesn't matter
     checks:
-      - kind: notContains
+      - kind: responseNotContains
         values: ["hallucinated", "made up"]

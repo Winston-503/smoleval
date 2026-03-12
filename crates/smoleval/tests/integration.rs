@@ -26,11 +26,11 @@ async fn load_yaml_and_evaluate() {
     let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
 
     assert_eq!(report.total_count(), 4);
-    // echoBasic: containsAll + exactMatch on "Hello, world!" -> both pass
+    // echoBasic: responseContainsAll + responseExactMatch on "Hello, world!" -> both pass
     assert_eq!(report.results[0].score, 1.0);
-    // echoKeywords: containsAny ["Paris", "sunny"] on "The weather in Paris is sunny" -> pass
+    // echoKeywords: responseContainsAny ["Paris", "sunny"] on "The weather in Paris is sunny" -> pass
     assert_eq!(report.results[1].score, 1.0);
-    // echoNoHallucination: notContains ["hallucinated", "made up"] -> pass
+    // echoNoHallucination: responseNotContains ["hallucinated", "made up"] -> pass
     assert_eq!(report.results[2].score, 1.0);
     // echoWithTools: toolsUsed ["echo_tool"] atLeast -> pass
     assert_eq!(report.results[3].score, 1.0);
@@ -48,7 +48,7 @@ tests:
   - name: failCase
     prompt: "hello"
     checks:
-      - kind: containsAll
+      - kind: responseContainsAll
         values: ["missing_keyword"]
 "#;
 
