@@ -3,6 +3,7 @@ members = [
     "crates/smoleval",
     "crates/smoleval-cli",
     "crates/smoleval-example",
+    "crates/smoleval-cli-example",
 ]
 resolver = "2"
 

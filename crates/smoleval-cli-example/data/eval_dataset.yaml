@@ -1,0 +1,31 @@
+name: "Calculator Agent Eval"
+description: "Evaluation dataset for a Rig-based calculator agent served over HTTP"
+tests:
+  - name: simpleAddition
+    prompt: |
+      What is 2 + 3?
+    checks:
+      - kind: responseContainsAny
+        values: ["5", "five"]
+      - kind: toolsUsed
+        tools: ["add"]
+        strictness: atLeast
+
+  - name: largerAddition
+    prompt: |
+      Please add 100 and 250 together.
+    checks:
+      - kind: responseContainsAll
+        values: ["350"]
+      - kind: toolsUsed
+        tools: ["add"]
+        strictness: atLeast
+
+  - name: noHallucination
+    prompt: |
+      What is 7 + 8?
+    checks:
+      - kind: responseContainsAny
+        values: ["15", "fifteen"]
+      - kind: responseNotContains
+        values: ["16", "14"]
