@@ -1,4 +1,4 @@
-# smoleval 🧪🤖🦀
+# smoleval
 
 A minimal evaluation framework for AI agents in Rust.
 
@@ -10,11 +10,9 @@ Define test cases in YAML, implement the `Agent` trait for your system, and get 
 - Pluggable `Agent` trait — back it with an HTTP API, local model, or a mock
 - Registry-based check system with five built-in validators
 - Structured reports with per-test scores (0.0–1.0) and aggregate metrics
-- CLI tool for running evals against HTTP agent endpoints
+- Optional HTTP agent client (enabled by default via `http` feature)
 
 ## Quick start
-
-Install with:
 
 ```toml
 [dependencies]
@@ -44,7 +42,6 @@ tests:
 ```rust
 use smoleval::{Agent, AgentResponse, CheckRegistry, EvalDataset, evaluate};
 
-// Implement the Agent trait for your system
 struct MyAgent;
 
 impl Agent for MyAgent {
@@ -78,15 +75,6 @@ async fn main() {
 | `responseNotContains`  | Response does not contain any of the specified values         |
 | `responseExactMatch`   | Response exactly matches the expected value                   |
 | `toolsUsed`            | Agent called specific tools (`atLeast` or `exact` strictness) |
-
-## Workspace crates
-
-| Crate                  | Description                                          |
-|------------------------|------------------------------------------------------|
-| `smoleval`             | Core evaluation engine                               |
-| `smoleval-cli`         | CLI for running evals against HTTP endpoints         |
-| `smoleval-example`     | Example with a mock agent and custom checks          |
-| `smoleval-cli-example` | Example HTTP agent server using Rig + Axum           |
 
 ## License
 
