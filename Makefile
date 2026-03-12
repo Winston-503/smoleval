@@ -37,6 +37,10 @@ test:  ## Run Rust tests (workspace)
 example:  ## Run the smoleval-example binary
 	cargo run -p smoleval-example
 
+.PHONY: cli-example
+cli-example:  ## Start the Rig agent HTTP server for smoleval-cli
+	cargo run -p smoleval-cli-example
+
 .PHONY: doc-lib
 doc-lib:  ## Run cargo doc for smoleval lib
 	cd $(LIB_DIR) && cargo doc --open

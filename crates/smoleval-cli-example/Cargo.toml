@@ -1,0 +1,14 @@
+[package]
+name = "smoleval-cli-example"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+rig-core = "0.32"
+axum = "0.8"
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+dotenvy = "0.15"
