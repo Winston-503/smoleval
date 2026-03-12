@@ -1,3 +1,4 @@
+use std::fmt;
 use std::time::{Duration, Instant};
 
 use futures::stream::{self, StreamExt};
@@ -6,6 +7,25 @@ use crate::Result;
 use crate::agent::{Agent, AgentResponse};
 use crate::check::{CheckRegistry, CheckResult};
 use crate::dataset::{EvalDataset, TestCase};
+
+// ---------------------------------------------------------------------------
+// TestCaseLabel — display label for test case results
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TestCaseLabel {
+    Pass,
+    Fail,
+}
+
+impl fmt::Display for TestCaseLabel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TestCaseLabel::Pass => write!(f, "PASS"),
+            TestCaseLabel::Fail => write!(f, "FAIL"),
+        }
+    }
+}
 
 /// Options for controlling evaluation behavior.
 #[derive(Debug, Clone)]
@@ -44,11 +64,11 @@ pub struct TestCaseResult {
 }
 
 impl TestCaseResult {
-    pub fn label(&self) -> String {
+    pub fn label(&self) -> TestCaseLabel {
         if self.score == 1.0 {
-            "PASS".to_string()
+            TestCaseLabel::Pass
         } else {
-            "FAIL".to_string()
+            TestCaseLabel::Fail
         }
     }
 }
