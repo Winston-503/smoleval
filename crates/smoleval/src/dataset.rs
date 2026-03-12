@@ -85,12 +85,12 @@ tests:
     description: first test
     prompt: say hi
     checks:
-      - kind: exactMatch
-        expected: hi
+      - kind: responseExactMatch
+        value: hi
   - name: t2
     prompt: say bye
     checks:
-      - kind: containsAll
+      - kind: responseContainsAll
         values: ["bye"]
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
@@ -100,8 +100,8 @@ tests:
         assert_eq!(ds.tests[0].name, "t1");
         assert_eq!(ds.tests[0].description, "first test");
         assert_eq!(ds.tests[0].checks.len(), 1);
-        assert_eq!(ds.tests[0].checks[0].kind, "exactMatch");
-        assert_eq!(ds.tests[1].checks[0].kind, "containsAll");
+        assert_eq!(ds.tests[0].checks[0].kind, "responseExactMatch");
+        assert_eq!(ds.tests[1].checks[0].kind, "responseContainsAll");
     }
 
     #[test]
@@ -162,8 +162,8 @@ tests:
   - name: t1
     prompt: hello
     checks:
-      - kind: exactMatch
-        expected: hello
+      - kind: responseExactMatch
+        value: hello
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
         let serialized = serde_yaml::to_string(&ds).unwrap();
@@ -197,13 +197,13 @@ tests:
   - name: t1
     prompt: test
     checks:
-      - kind: containsAll
+      - kind: responseContainsAll
         values: ["a", "b"]
         caseSensitive: true
 "#;
         let ds = EvalDataset::from_yaml(yaml).unwrap();
         let check = &ds.tests[0].checks[0];
-        assert_eq!(check.kind, "containsAll");
+        assert_eq!(check.kind, "responseContainsAll");
         let values = check.config["values"].as_array().unwrap();
         assert_eq!(values.len(), 2);
         assert_eq!(check.config["caseSensitive"], true);

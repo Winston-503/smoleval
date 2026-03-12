@@ -440,8 +440,8 @@ mod tests {
             "t",
             "hello",
             vec![crate::check::CheckSpec {
-                kind: "exactMatch".into(),
-                config: serde_json::json!({"expected": "hello"}),
+                kind: "responseExactMatch".into(),
+                config: serde_json::json!({"value": "hello"}),
             }],
         );
         let response = AgentResponse {
@@ -461,12 +461,12 @@ mod tests {
             "hello world",
             vec![
                 crate::check::CheckSpec {
-                    kind: "containsAll".into(),
+                    kind: "responseContainsAll".into(),
                     config: serde_json::json!({"values": ["hello"]}),
                 },
                 crate::check::CheckSpec {
-                    kind: "exactMatch".into(),
-                    config: serde_json::json!({"expected": "wrong"}),
+                    kind: "responseExactMatch".into(),
+                    config: serde_json::json!({"value": "wrong"}),
                 },
             ],
         );
