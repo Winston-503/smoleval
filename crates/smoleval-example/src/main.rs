@@ -24,23 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("=== {} ===\n", dataset.name());
 
-    let options = EvalOptions::new().with_on_result(|result| {
-        println!(
-            "[{}] {} ({:.2})",
-            result.label(),
-            result.test_case().name(),
-            result.score()
-        );
-        for (check, check_result) in result.test_case().checks().iter().zip(result.check_results()) {
-            println!(
-                "  [{}] {}: {}",
-                check_result.label(),
-                check.kind(),
-                check_result.reason()
-            );
-        }
-        println!();
-    });
+    let options = EvalOptions::new().with_print_on_result();
 
     let report = evaluate_with_options(&MockAgent, &dataset, &registry, &options).await?;
 

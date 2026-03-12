@@ -61,6 +61,11 @@ impl EvalOptions {
         self
     }
 
+    /// Set a built-in callback that prints each test case result to stdout.
+    pub fn with_print_on_result(self) -> Self {
+        self.with_on_result(print_on_result)
+    }
+
     /// Maximum number of test cases to run concurrently.
     pub fn concurrency(&self) -> usize {
         self.concurrency
@@ -90,6 +95,35 @@ impl Default for EvalOptions {
             on_result: None,
         }
     }
+}
+
+/// Built-in callback that prints each test case result to stdout.
+pub fn print_on_result(result: &TestCaseResult) {
+    if let Some(err) = result.outcome().error() {
+        println!(
+            "[ERROR] {} [{:.1}s]",
+            result.test_case().name(),
+            result.duration().as_secs_f64()
+        );
+        println!("  {err}");
+    } else {
+        println!(
+            "[{}] {} ({:.2}) [{:.1}s]",
+            result.label(),
+            result.test_case().name(),
+            result.score(),
+            result.duration().as_secs_f64()
+        );
+        for (check, check_result) in result.test_case().checks().iter().zip(result.check_results()) {
+            println!(
+                "  [{}] {}: {}",
+                check_result.label(),
+                check.kind(),
+                check_result.reason()
+            );
+        }
+    }
+    println!();
 }
 
 /// Result for a single test case.
