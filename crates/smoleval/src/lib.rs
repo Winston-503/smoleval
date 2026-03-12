@@ -10,6 +10,8 @@ pub use agent::{Agent, AgentOutcome, AgentResponse, ToolCall};
 pub use check::{Check, CheckLabel, CheckRegistry, CheckResult, CheckSpec, ToolStrictness};
 pub use dataset::{EvalDataset, TestCase};
 pub use error::{Result, SmolError};
-pub use eval::{EvalOptions, EvalReport, TestCaseLabel, TestCaseResult, evaluate, evaluate_with_options};
+pub use eval::{
+    EvalOptions, EvalReport, TestCaseLabel, TestCaseResult, evaluate, evaluate_with_options, print_on_result,
+};
 #[cfg(feature = "http")]
 pub use http_agent::HttpAgent;
