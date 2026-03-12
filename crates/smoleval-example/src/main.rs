@@ -30,12 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for result in &report.results {
         println!("[{}] {} ({:.2})", result.label(), result.test_case.name, result.score);
         for (check, check_result) in result.test_case.checks.iter().zip(&result.check_results) {
-            println!(
-                "  [{}] {}: {}",
-                check_result.label(),
-                check.kind,
-                check_result.reason()
-            );
+            println!("  [{}] {}: {}", check_result.label(), check.kind, check_result.reason());
         }
         println!();
     }

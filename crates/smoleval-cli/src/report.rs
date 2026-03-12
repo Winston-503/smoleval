@@ -26,7 +26,13 @@ pub fn format_text(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
             )?;
 
             for (def, check_result) in result.test_case.checks.iter().zip(&result.check_results) {
-                writeln!(w, "  [{}] {}: {}", check_result.label(), def.kind, check_result.reason())?;
+                writeln!(
+                    w,
+                    "  [{}] {}: {}",
+                    check_result.label(),
+                    def.kind,
+                    check_result.reason()
+                )?;
             }
         }
         writeln!(w)?;
