@@ -1,4 +1,4 @@
-name: "Mock Agent Eval"
+name: "Mock Agent Eval Dataset"
 description: "Demo evaluation with a mock echo agent"
 tests:
   - name: echoGreeting
@@ -26,3 +26,17 @@ tests:
     checks:
       - kind: responseNotContains
         values: ["hallucinated", "made up"]
+
+  - name: customCheck
+    prompt: |
+      This custom check is constructed properly and will run without errors if registered
+    checks:
+      - kind: customCheck
+        customValue: "custom"
+
+  - name: incorrectCustomCheck
+    prompt: |
+      This custom check is not properly constructed
+    checks:
+      - kind: customCheck
+        thisIsNotCorrect: "oops"
