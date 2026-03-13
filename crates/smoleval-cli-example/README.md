@@ -41,8 +41,9 @@ smoleval \
   --dataset crates/smoleval-cli-example/data/eval_dataset.yaml \
   --agent http://localhost:3825 \
   --concurrency 3 \
-  --quiet --output results.json \
-  --format json
+  --quiet \
+  --format json \
+  --output results.json
 ```
 
 Use `--format json` to get machine-readable output, or `--format junit` for CI integration.
