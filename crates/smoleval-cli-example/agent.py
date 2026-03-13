@@ -9,12 +9,11 @@
 # ///
 """Minimal LangGraph agent server compatible with smoleval's HTTP protocol."""
 
-from flask import Flask, request, jsonify
+import dotenv
+from flask import Flask, jsonify, request
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-
-import dotenv
 
 dotenv.load_dotenv()
 
@@ -63,6 +62,5 @@ if __name__ == "__main__":
     print("Run the eval with:")
     print("  cargo run -p smoleval-cli -- \\")
     print("    --dataset crates/smoleval-cli-example/data/eval_dataset.yaml \\")
-    print(f"    --agent http://localhost:{port} \\")
-    print("    --concurrency 2")
+    print(f"    --agent http://localhost:{port}")
     app.run(host=addr, port=port)
