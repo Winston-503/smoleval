@@ -12,8 +12,8 @@ name = "smoleval"
 path = "src/main.rs"
 
 [dependencies]
-smoleval = { workspace = true }
-clap = { workspace = true }
-tokio = { workspace = true }
 anyhow = { workspace = true }
+clap = { workspace = true }
 serde_json = { workspace = true }
+smoleval = { workspace = true }
+tokio = { workspace = true }

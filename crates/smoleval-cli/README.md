@@ -35,7 +35,3 @@ smoleval --dataset eval.yaml --agent http://localhost:3825
 - **text** — human-readable summary with per-test details
 - **json** — structured output for programmatic consumption
 - **junit** — XML format for CI/CD integration
-
-## License
-
-Apache-2.0
