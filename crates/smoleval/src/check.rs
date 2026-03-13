@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
@@ -74,6 +75,7 @@ impl CheckSpec {
 pub struct CheckResult {
     score: f64,
     reason: String,
+    duration: Duration,
 }
 
 impl CheckResult {
@@ -82,6 +84,7 @@ impl CheckResult {
         Self {
             score: 1.0,
             reason: reason.into(),
+            duration: Duration::ZERO,
         }
     }
 
@@ -90,6 +93,7 @@ impl CheckResult {
         Self {
             score: 0.0,
             reason: reason.into(),
+            duration: Duration::ZERO,
         }
     }
 
@@ -104,6 +108,7 @@ impl CheckResult {
         Ok(Self {
             score,
             reason: reason.into(),
+            duration: Duration::ZERO,
         })
     }
 
@@ -125,6 +130,16 @@ impl CheckResult {
         } else {
             CheckLabel::Fail
         }
+    }
+
+    /// Wall-clock duration of this check's execution.
+    pub fn duration(&self) -> Duration {
+        self.duration
+    }
+
+    /// Set the duration (used internally by the eval runner).
+    pub(crate) fn set_duration(&mut self, duration: Duration) {
+        self.duration = duration;
     }
 }
 
