@@ -43,6 +43,22 @@ example-rig-agent:  ## Start the Rig agent HTTP server for smoleval-cli
 example-langgraph-agent:  ## Start the LangGraph agent HTTP server for smoleval-cli
 	uv run crates/smoleval-cli-example/agent.py
 
+.PHONY: release
+release:  ## Build release binary
+	cargo build --release -p smoleval-cli
+
+.PHONY: binary-info
+binary-info: release  ## Show .rs line counts (excl. tests) and release binary size
+	@printf "\033[1mRust lines (excluding tests):\033[0m\n"
+	@for dir in $(LIB_DIR)/src $(CLI_DIR)/src; do \
+		count=$$(find $$dir -name '*.rs' -exec sed '/#\[cfg(test)\]/,$$d' {} \; | grep -cv '^\s*$$'); \
+		printf "  %-20s %d lines\n" "$$(basename $$(dirname $$dir)):" "$$count"; \
+	done
+	@total=$$(find $(LIB_DIR)/src $(CLI_DIR)/src -name '*.rs' -exec sed '/#\[cfg(test)\]/,$$d' {} \; | grep -cv '^\s*$$'); \
+		printf "  %-20s %d lines\n" "total:" "$$total"
+	@printf "\033[1mRelease binary:\033[0m\n"
+	@ls -lh target/release/smoleval | awk '{printf "  size: %s\n", $$5}'
+
 .PHONY: doc-lib
 doc-lib:  ## Run cargo doc for smoleval lib
 	cd $(LIB_DIR) && cargo doc --open
