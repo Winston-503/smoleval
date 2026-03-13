@@ -54,6 +54,10 @@ struct Cli {
     /// Abort on first agent error (only effective with concurrency=1).
     #[arg(long)]
     fail_fast: bool,
+
+    /// Validate check specs without running any agents, then exit.
+    #[arg(long)]
+    validate_only: bool,
 }
 
 #[tokio::main]
@@ -67,6 +71,17 @@ async fn main() -> Result<()> {
 
     let dataset = EvalDataset::from_file(&cli.dataset)?;
     let registry = CheckRegistry::with_builtins();
+
+    if cli.validate_only {
+        registry.validate_dataset(&dataset)?;
+        let total_checks: usize = dataset.tests().iter().map(|t| t.checks().len()).sum();
+        println!(
+            "All checks valid ({} tests, {} checks).",
+            dataset.tests().len(),
+            total_checks,
+        );
+        return Ok(());
+    }
 
     let timeout = Duration::from_secs(cli.timeout);
     let agent = HttpAgent::with_timeout(&cli.agent, timeout);

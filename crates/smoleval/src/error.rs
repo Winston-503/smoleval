@@ -22,6 +22,9 @@ pub enum SmolError {
 
     #[error("duplicate test case name: {0}")]
     DuplicateTestName(String),
+
+    #[error("preflight check validation failed:\n{}", .0.join("\n"))]
+    PreflightCheckErrors(Vec<String>),
 }
 
 pub type Result<T> = std::result::Result<T, SmolError>;

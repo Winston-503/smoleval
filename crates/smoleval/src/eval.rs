@@ -34,6 +34,7 @@ impl fmt::Display for TestCaseLabel {
 pub struct EvalOptions {
     concurrency: usize,
     fail_fast: bool,
+    skip_preflight: bool,
     on_result: Option<OnResultCallback>,
 }
 
@@ -52,6 +53,13 @@ impl EvalOptions {
     /// If true, abort the evaluation on the first error (only effective with concurrency=1).
     pub fn with_fail_fast(mut self, fail_fast: bool) -> Self {
         self.fail_fast = fail_fast;
+        self
+    }
+
+    /// Skip preflight check validation. By default, all check specs in the dataset
+    /// are validated before running any agents. Set this to `true` to bypass that step.
+    pub fn with_skip_preflight(mut self, skip: bool) -> Self {
+        self.skip_preflight = skip;
         self
     }
 
@@ -82,6 +90,7 @@ impl fmt::Debug for EvalOptions {
         f.debug_struct("EvalOptions")
             .field("concurrency", &self.concurrency)
             .field("fail_fast", &self.fail_fast)
+            .field("skip_preflight", &self.skip_preflight)
             .field("on_result", &self.on_result.as_ref().map(|_| ".."))
             .finish()
     }
@@ -92,6 +101,7 @@ impl Default for EvalOptions {
         Self {
             concurrency: 1,
             fail_fast: false,
+            skip_preflight: false,
             on_result: None,
         }
     }
@@ -246,6 +256,10 @@ pub async fn evaluate_with_options<A: Agent>(
     registry: &CheckRegistry,
     options: &EvalOptions,
 ) -> Result<EvalReport> {
+    if !options.skip_preflight {
+        registry.validate_dataset(dataset)?;
+    }
+
     let start = Instant::now();
     let concurrency = options.concurrency.max(1);
 
