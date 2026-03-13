@@ -6,11 +6,11 @@ readme = "README.md"
 publish = false
 
 [dependencies]
-smoleval = { workspace = true }
-rig-core = "0.32"
 axum = "0.8"
-tokio = { workspace = true }
+dotenvy = "0.15"
+rig-core = "0.32"
 serde = { workspace = true }
 serde_json = { workspace = true }
+smoleval = { workspace = true }
 thiserror = { workspace = true }
-dotenvy = "0.15"
+tokio = { workspace = true }

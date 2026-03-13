@@ -77,7 +77,3 @@ async fn main() {
 | `toolUsedAtMost`       | Tool was used at most N times (optional parameter matching)   |
 | `toolUsedExactly`      | Tool was used exactly N times (optional parameter matching)   |
 | `toolsUsedInOrder`     | Tools were used in a specific order (allows gaps)             |
-
-## License
-
-Apache-2.0

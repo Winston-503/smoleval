@@ -133,8 +133,7 @@ async fn main() {
     println!("Run the eval with:");
     println!("  cargo run -p smoleval-cli -- \\");
     println!("    --dataset crates/smoleval-cli-example/data/eval_dataset.yaml \\");
-    println!("    --agent http://localhost:3825 \\");
-    println!("    --concurrency 2");
+    println!("    --agent http://localhost:3825");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

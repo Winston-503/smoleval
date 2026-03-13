@@ -31,16 +31,16 @@ dev-lint: format  ## Run format and clippy --fix to auto-fix errors
 test:  ## Run Rust tests (workspace)
 	cargo test
 
-.PHONY: example
-example:  ## Run the smoleval-example binary
+.PHONY: example-smoleval
+example-smoleval:  ## Run the smoleval-example binary
 	cargo run -p smoleval-example
 
 .PHONY: example-rig-agent
 example-rig-agent:  ## Start the Rig agent HTTP server for smoleval-cli
 	cargo run -p smoleval-cli-example
 
-.PHONY: example-langchain-agent
-example-langchain-agent:  ## Start the LangGraph agent HTTP server for smoleval-cli
+.PHONY: example-langgraph-agent
+example-langgraph-agent:  ## Start the LangGraph agent HTTP server for smoleval-cli
 	uv run crates/smoleval-cli-example/agent.py
 
 .PHONY: doc-lib
