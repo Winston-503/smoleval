@@ -9,6 +9,7 @@ tests:
         values: ["5", "five"]
       - kind: toolUsedAtLeast
         name: "add"
+        times: 1
 
   - name: largerAddition
     prompt: |
@@ -16,8 +17,9 @@ tests:
     checks:
       - kind: responseContainsAll
         values: ["350"]
-      - kind: toolUsedAtLeast
+      - kind: toolUsedExactly
         name: "add"
+        times: 1
 
   - name: noHallucination
     prompt: |

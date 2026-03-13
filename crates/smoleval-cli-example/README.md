@@ -6,7 +6,7 @@ Both examples implement the same calculator agent with an `add` tool, demonstrat
 
 ## Rust / Rig (port 3825)
 
-Builds an [Axum](https://crates.io/crates/axum) web server backed by [Rig](https://crates.io/crates/rig-core) with an OpenAI GPT-4 agent and a custom tool.
+[Axum](https://crates.io/crates/axum) web server backed by [Rig](https://crates.io/crates/rig-core).
 
 ```bash
 export OPENAI_API_KEY=sk-...
@@ -20,18 +20,29 @@ smoleval --dataset crates/smoleval-cli-example/data/eval_dataset.yaml --agent ht
 
 ## Python / LangGraph (port 3826)
 
-A single-file [Flask](https://flask.palletsprojects.com) server backed by [LangGraph](https://langchain-ai.github.io/langgraph/). Uses [PEP 723](https://peps.python.org/pep-0723/) inline metadata so `uv run` handles dependencies automatically.
+[Flask](https://flask.palletsprojects.com) server backed by [LangGraph](https://langchain-ai.github.io/langgraph/).
 
 ```bash
 export OPENAI_API_KEY=sk-...
 
 # Start the server (requires uv)
-make example-langchain-agent
+make example-langgraph-agent
 
 # In another terminal, run the eval
 smoleval --dataset crates/smoleval-cli-example/data/eval_dataset.yaml --agent http://localhost:3826
 ```
 
-## License
+## CLI Options
 
-Apache-2.0
+Run tests concurrently with `--concurrency`. Pair it with `--quiet` and `--output` so live agent logs stay readable and the eval report goes to a file:
+
+```bash
+smoleval \
+  --dataset crates/smoleval-cli-example/data/eval_dataset.yaml \
+  --agent http://localhost:3825 \
+  --concurrency 3 \
+  --quiet --output results.json \
+  --format json
+```
+
+Use `--format json` to get machine-readable output, or `--format junit` for CI integration.
