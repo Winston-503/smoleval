@@ -12,7 +12,7 @@ pub fn format_text(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
                 w,
                 "[ERROR] {} [{:.1}s]",
                 result.test_case().name(),
-                result.duration().as_secs_f64()
+                result.agent_duration().as_secs_f64()
             )?;
             writeln!(w, "  {err}")?;
         } else {
@@ -22,16 +22,17 @@ pub fn format_text(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
                 result.label(),
                 result.test_case().name(),
                 result.score(),
-                result.duration().as_secs_f64()
+                result.agent_duration().as_secs_f64()
             )?;
 
             for (def, check_result) in result.test_case().checks().iter().zip(result.check_results()) {
                 writeln!(
                     w,
-                    "  [{}] {}: {}",
+                    "  [{}] {}: {} [{:.1}s]",
                     check_result.label(),
                     def.kind(),
-                    check_result.reason()
+                    check_result.reason(),
+                    check_result.duration().as_secs_f64()
                 )?;
             }
         }
@@ -83,13 +84,14 @@ pub fn format_json(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
                 "testCase": r.test_case().name(),
                 "score": r.score(),
                 "passed": r.score() == 1.0,
-                "durationSecs": r.duration().as_secs_f64(),
+                "agentDurationSecs": r.agent_duration().as_secs_f64(),
                 "checks": r.test_case().checks().iter().zip(r.check_results()).map(|(def, cr)| {
                     serde_json::json!({
                         "kind": def.kind(),
                         "score": cr.score(),
                         "passed": cr.passed(),
                         "reason": cr.reason(),
+                        "durationSecs": cr.duration().as_secs_f64(),
                     })
                 }).collect::<Vec<_>>(),
             });
@@ -137,7 +139,7 @@ pub fn format_junit(report: &EvalReport, w: &mut dyn Write) -> std::io::Result<(
             w,
             r#"    <testcase name="{}" time="{:.3}""#,
             xml_escape(result.test_case().name()),
-            result.duration().as_secs_f64()
+            result.agent_duration().as_secs_f64()
         )?;
 
         if let Some(err) = result.outcome().error() {

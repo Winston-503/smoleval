@@ -103,7 +103,7 @@ pub fn print_on_result(result: &TestCaseResult) {
         println!(
             "[ERROR] {} [{:.1}s]",
             result.test_case().name(),
-            result.duration().as_secs_f64()
+            result.agent_duration().as_secs_f64()
         );
         println!("  {err}");
     } else {
@@ -112,14 +112,15 @@ pub fn print_on_result(result: &TestCaseResult) {
             result.label(),
             result.test_case().name(),
             result.score(),
-            result.duration().as_secs_f64()
+            result.agent_duration().as_secs_f64()
         );
         for (check, check_result) in result.test_case().checks().iter().zip(result.check_results()) {
             println!(
-                "  [{}] {}: {}",
+                "  [{}] {}: {} [{:.1}s]",
                 check_result.label(),
                 check.kind(),
-                check_result.reason()
+                check_result.reason(),
+                check_result.duration().as_secs_f64()
             );
         }
     }
@@ -133,7 +134,7 @@ pub struct TestCaseResult {
     outcome: AgentOutcome,
     check_results: Vec<CheckResult>,
     score: f64,
-    duration: Duration,
+    agent_duration: Duration,
 }
 
 impl TestCaseResult {
@@ -157,9 +158,9 @@ impl TestCaseResult {
         self.score
     }
 
-    /// Wall-clock duration for this test case.
-    pub fn duration(&self) -> Duration {
-        self.duration
+    /// Wall-clock duration of the agent run (excludes check execution time).
+    pub fn agent_duration(&self) -> Duration {
+        self.agent_duration
     }
 
     pub fn label(&self) -> TestCaseLabel {
@@ -271,14 +272,13 @@ async fn evaluate_sequential<A: Agent>(
     let mut results = Vec::with_capacity(dataset.tests().len());
 
     for test_case in dataset.tests() {
-        let start = Instant::now();
         let result = match run_single(agent, test_case, registry).await {
-            Ok((response, check_results, score)) => TestCaseResult {
+            Ok((response, check_results, score, agent_duration)) => TestCaseResult {
                 test_case: test_case.clone(),
                 outcome: AgentOutcome::Response(response),
                 check_results,
                 score,
-                duration: start.elapsed(),
+                agent_duration,
             },
             Err(e) => {
                 if fail_fast {
@@ -289,7 +289,7 @@ async fn evaluate_sequential<A: Agent>(
                     outcome: AgentOutcome::Error(e.to_string()),
                     check_results: vec![],
                     score: 0.0,
-                    duration: start.elapsed(),
+                    agent_duration: Duration::ZERO,
                 }
             }
         };
@@ -312,23 +312,20 @@ async fn evaluate_concurrent<A: Agent>(
     let mut results = Vec::with_capacity(dataset.tests().len());
     let mut stream = stream::iter(dataset.tests())
         .map(|test_case| async move {
-            let start = Instant::now();
-            let result = run_single(agent, test_case, registry).await;
-            let duration = start.elapsed();
-            match result {
-                Ok((response, check_results, score)) => TestCaseResult {
+            match run_single(agent, test_case, registry).await {
+                Ok((response, check_results, score, agent_duration)) => TestCaseResult {
                     test_case: test_case.clone(),
                     outcome: AgentOutcome::Response(response),
                     check_results,
                     score,
-                    duration,
+                    agent_duration,
                 },
                 Err(e) => TestCaseResult {
                     test_case: test_case.clone(),
                     outcome: AgentOutcome::Error(e.to_string()),
                     check_results: vec![],
                     score: 0.0,
-                    duration,
+                    agent_duration: Duration::ZERO,
                 },
             }
         })
@@ -348,11 +345,13 @@ async fn run_single<A: Agent>(
     agent: &A,
     test_case: &TestCase,
     registry: &CheckRegistry,
-) -> Result<(AgentResponse, Vec<CheckResult>, f64)> {
+) -> Result<(AgentResponse, Vec<CheckResult>, f64, Duration)> {
+    let start = Instant::now();
     let response = agent.run(test_case.prompt()).await?;
+    let agent_duration = start.elapsed();
     let check_results = run_checks(test_case, &response, registry)?;
     let score = mean_score(&check_results);
-    Ok((response, check_results, score))
+    Ok((response, check_results, score, agent_duration))
 }
 
 fn run_checks(test_case: &TestCase, response: &AgentResponse, registry: &CheckRegistry) -> Result<Vec<CheckResult>> {
@@ -361,7 +360,10 @@ fn run_checks(test_case: &TestCase, response: &AgentResponse, registry: &CheckRe
         .iter()
         .map(|def| {
             let check = registry.create(def)?;
-            Ok(check.run(response))
+            let start = Instant::now();
+            let mut result = check.run(response);
+            result.set_duration(start.elapsed());
+            Ok(result)
         })
         .collect()
 }
@@ -462,14 +464,14 @@ mod tests {
                     outcome: AgentOutcome::Response(AgentResponse::new("p", vec![])),
                     check_results: vec![],
                     score: 1.0,
-                    duration: Duration::ZERO,
+                    agent_duration: Duration::ZERO,
                 },
                 TestCaseResult {
                     test_case: make_test_case("b", "q", vec![]),
                     outcome: AgentOutcome::Response(AgentResponse::new("q", vec![])),
                     check_results: vec![],
                     score: 1.0,
-                    duration: Duration::ZERO,
+                    agent_duration: Duration::ZERO,
                 },
             ],
             duration: Duration::ZERO,
@@ -490,21 +492,21 @@ mod tests {
                     outcome: AgentOutcome::Response(AgentResponse::new("p", vec![])),
                     check_results: vec![],
                     score: 1.0,
-                    duration: Duration::ZERO,
+                    agent_duration: Duration::ZERO,
                 },
                 TestCaseResult {
                     test_case: make_test_case("b", "q", vec![]),
                     outcome: AgentOutcome::Response(AgentResponse::new("q", vec![])),
                     check_results: vec![],
                     score: 0.0,
-                    duration: Duration::ZERO,
+                    agent_duration: Duration::ZERO,
                 },
                 TestCaseResult {
                     test_case: make_test_case("c", "r", vec![]),
                     outcome: AgentOutcome::Response(AgentResponse::new("r", vec![])),
                     check_results: vec![],
                     score: 0.5,
-                    duration: Duration::ZERO,
+                    agent_duration: Duration::ZERO,
                 },
             ],
             duration: Duration::ZERO,

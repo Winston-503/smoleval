@@ -730,7 +730,7 @@ tests:
     let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
 
     assert!(!report.duration().is_zero());
-    assert!(!report.results()[0].duration().is_zero());
+    assert!(!report.results()[0].agent_duration().is_zero());
 }
 
 // ---------------------------------------------------------------------------
