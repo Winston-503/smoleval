@@ -4,7 +4,7 @@ CLI_DIR := crates/smoleval-cli
 .PHONY: help
 help:  ## Display this help screen
 	@echo -e "\033[1mAvailable commands:\033[0m"
-	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' | sort
+	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-26s\033[0m %s\n", $$1, $$2}' | sort
 
 .PHONY: check
 check:  ## Run cargo check (workspace)
@@ -72,7 +72,7 @@ publish-cli:  ## Publish smoleval-cli to crates.io
 	cd $(CLI_DIR) && cargo publish
 
 .PHONY: binary-info
-binary-info: release  ## Show .rs line counts (excl. tests) and release binary size
+binary-info: release  ## Show .rs line counts and release binary size
 	@printf "\033[1mRust lines (excluding tests):\033[0m\n"
 	@for dir in $(LIB_DIR)/src $(CLI_DIR)/src; do \
 		count=$$(find $$dir -name '*.rs' -exec sed '/#\[cfg(test)\]/,$$d' {} \; | grep -cv '^\s*$$'); \
