@@ -26,6 +26,13 @@ tests:
       - kind: responseNotContains
         values: ["hallucinated", "made up"]
 
+  - name: llmJudge
+    prompt: |
+      The capital of France is London.
+    checks:
+      - kind: llmJudge
+        criteria: "The response must correctly state that Paris is the capital of France."
+
   - name: customCheck
     prompt: |
       This custom check is constructed properly and will run without errors if registered

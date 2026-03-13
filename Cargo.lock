@@ -1659,6 +1659,9 @@ dependencies = [
 name = "smoleval-example"
 version = "0.1.0"
 dependencies = [
+ "dotenvy",
+ "rig-core",
+ "schemars",
  "serde",
  "serde_json",
  "smoleval",

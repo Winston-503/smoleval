@@ -10,3 +10,6 @@ smoleval = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 serde = { version = "1.0.228", features = ["derive"] }
+rig-core = "0.32"
+schemars = "1"
+dotenvy = "0.15"
