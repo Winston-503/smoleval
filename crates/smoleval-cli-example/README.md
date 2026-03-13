@@ -18,15 +18,15 @@ make example-rig-agent
 smoleval --dataset crates/smoleval-cli-example/data/eval_dataset.yaml --agent http://localhost:3825
 ```
 
-## Python / LangGraph (port 3826)
+## Python / LangChain (port 3826)
 
-[Flask](https://flask.palletsprojects.com) server backed by [LangGraph](https://langchain-ai.github.io/langgraph/).
+[Flask](https://flask.palletsprojects.com) server backed by [LangChain](https://docs.langchain.com).
 
 ```bash
 export OPENAI_API_KEY=sk-...
 
 # Start the server (requires uv)
-make example-langgraph-agent
+make example-langchain-agent
 
 # In another terminal, run the eval
 smoleval --dataset crates/smoleval-cli-example/data/eval_dataset.yaml --agent http://localhost:3826

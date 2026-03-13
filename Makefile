@@ -43,8 +43,8 @@ example-smoleval:  ## Run the smoleval-example binary
 example-rig-agent:  ## Start the Rig agent HTTP server for smoleval-cli
 	cargo run -p smoleval-cli-example
 
-.PHONY: example-langgraph-agent
-example-langgraph-agent:  ## Start the LangGraph agent HTTP server for smoleval-cli
+.PHONY: example-langchain-agent
+example-langchain-agent:  ## Start the LangChain agent HTTP server for smoleval-cli
 	uv run crates/smoleval-cli-example/agent.py
 
 .PHONY: doc-lib
