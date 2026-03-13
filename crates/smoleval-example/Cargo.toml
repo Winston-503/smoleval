@@ -6,10 +6,10 @@ readme = "README.md"
 publish = false
 
 [dependencies]
-smoleval = { workspace = true }
-serde_json = { workspace = true }
-tokio = { workspace = true }
-serde = { version = "1.0.228", features = ["derive"] }
+dotenvy = "0.15"
 rig-core = "0.32"
 schemars = "1"
-dotenvy = "0.15"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { workspace = true }
+smoleval = { workspace = true }
+tokio = { workspace = true }

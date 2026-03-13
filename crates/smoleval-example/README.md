@@ -4,17 +4,14 @@ Example demonstrating how to use [smoleval](https://crates.io/crates/smoleval) a
 
 Shows how to:
 
-- Implement the `Agent` trait with a mock agent
-- Define and register custom checks
-- Run evaluations with `evaluate_with_options()`
-- Use the `print_on_result` callback for live output
+- Implement the `Agent` trait with a mock echo agent
+- Define and register custom checks, including LLM-as-a-judge implemented with [Rig](https://github.com/0xPlaygrounds/rig)
+- Load an evaluation dataset from YAML and run evaluations
 
 ## Running
 
 ```bash
-cargo run -p smoleval-example
+make example
 ```
 
-## License
-
-Apache-2.0
+Optionally set `OPENAI_API_KEY` to enable the LLM-as-a-judge check. Without it the `llmJudge` check is skipped.

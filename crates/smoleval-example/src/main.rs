@@ -34,7 +34,7 @@ impl Agent for MockAgent {
 }
 
 // ---------------------------------------------------------------------------
-// CustomCheck registration example
+// CustomCheck example
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Deserialize)]
