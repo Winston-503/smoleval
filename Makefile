@@ -14,6 +14,10 @@ check:  ## Run cargo check (workspace)
 build:  ## Run cargo build (workspace)
 	cargo build
 
+.PHONY: release
+release:  ## Build release binary
+	cargo build --release -p smoleval-cli
+
 .PHONY: format
 format:  ## Run cargo fmt (workspace)
 	cargo fmt
@@ -66,3 +70,15 @@ publish-cli-dry-run:  ## Publish smoleval-cli in dry run
 .PHONY: publish-cli
 publish-cli:  ## Publish smoleval-cli to crates.io
 	cd $(CLI_DIR) && cargo publish
+
+.PHONY: binary-info
+binary-info: release  ## Show .rs line counts (excl. tests) and release binary size
+	@printf "\033[1mRust lines (excluding tests):\033[0m\n"
+	@for dir in $(LIB_DIR)/src $(CLI_DIR)/src; do \
+		count=$$(find $$dir -name '*.rs' -exec sed '/#\[cfg(test)\]/,$$d' {} \; | grep -cv '^\s*$$'); \
+		printf "  %-20s %d lines\n" "$$(basename $$(dirname $$dir)):" "$$count"; \
+	done
+	@total=$$(find $(LIB_DIR)/src $(CLI_DIR)/src -name '*.rs' -exec sed '/#\[cfg(test)\]/,$$d' {} \; | grep -cv '^\s*$$'); \
+		printf "  %-20s %d lines\n" "total:" "$$total"
+	@printf "\033[1mRelease binary:\033[0m\n"
+	@ls -lh target/release/smoleval | awk '{printf "  size: %s\n", $$5}'
