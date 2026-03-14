@@ -6,10 +6,10 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use anyhow::Result;
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use smoleval::{CheckRegistry, EvalDataset, EvalOptions, HttpAgent, evaluate_with_options};
 
-#[derive(Clone, Debug, ValueEnum)]
+#[derive(Clone, Debug)]
 enum OutputFormat {
     Text,
     Json,
@@ -27,10 +27,6 @@ struct Cli {
     #[arg(short, long)]
     agent: String,
 
-    /// Output format.
-    #[arg(short, long, default_value = "text")]
-    format: OutputFormat,
-
     /// Request timeout in seconds.
     #[arg(short, long, default_value = "60")]
     timeout: u64,
@@ -39,7 +35,7 @@ struct Cli {
     #[arg(long, default_value = "1.0")]
     threshold: f64,
 
-    /// Write report to a file (in addition to stdout, unless --quiet).
+    /// Write report to a file. Format is inferred from extension: .json, .xml (JUnit), or text.
     #[arg(short, long)]
     output: Option<PathBuf>,
 
@@ -97,13 +93,18 @@ async fn main() -> Result<()> {
     if !cli.quiet {
         let stdout = std::io::stdout();
         let mut out = stdout.lock();
-        write_report(&report, &cli.format, cli.threshold, &mut out)?;
+        write_report(&report, &OutputFormat::Text, cli.threshold, &mut out)?;
     }
 
     if let Some(ref path) = cli.output {
+        let format = match path.extension().and_then(|e| e.to_str()) {
+            Some("json") => OutputFormat::Json,
+            Some("xml") => OutputFormat::Junit,
+            _ => OutputFormat::Text,
+        };
         let file = File::create(path)?;
         let mut out = BufWriter::new(file);
-        write_report(&report, &cli.format, cli.threshold, &mut out)?;
+        write_report(&report, &format, cli.threshold, &mut out)?;
     }
 
     if report.mean_score() < cli.threshold {

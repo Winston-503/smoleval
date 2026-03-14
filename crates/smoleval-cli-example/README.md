@@ -42,8 +42,7 @@ smoleval \
   --agent http://localhost:3825 \
   --concurrency 3 \
   --quiet \
-  --format json \
   --output results.json
 ```
 
-Use `--format json` to get machine-readable output, or `--format junit` for CI integration.
+The output format is inferred from the file extension: `.json` for JSON, `.xml` for JUnit XML, or text otherwise.
