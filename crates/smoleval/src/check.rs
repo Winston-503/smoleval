@@ -206,6 +206,38 @@ impl CheckRegistry {
             .ok_or_else(|| SmolError::UnknownCheck(def.kind.clone()))?;
         factory(&def.config)
     }
+
+    /// Validate all check specs in a dataset by attempting to instantiate each one.
+    ///
+    /// This is a preflight check: it calls each factory with the config to ensure
+    /// the kind is known and the config deserializes correctly. No check is actually
+    /// run against a response.
+    ///
+    /// Returns `Ok(())` if all specs are valid, or `Err(SmolError::PreflightCheckErrors(...))`
+    /// with a list of all validation failures.
+    pub fn validate_dataset(&self, dataset: &crate::dataset::EvalDataset) -> Result<()> {
+        let mut errors = Vec::new();
+
+        for test_case in dataset.tests() {
+            for (i, spec) in test_case.checks().iter().enumerate() {
+                if let Err(e) = self.create(spec) {
+                    errors.push(format!(
+                        "test '{}', check #{} ({}): {}",
+                        test_case.name(),
+                        i,
+                        spec.kind(),
+                        e
+                    ));
+                }
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(SmolError::PreflightCheckErrors(errors))
+        }
+    }
 }
 
 impl Default for CheckRegistry {

@@ -410,7 +410,7 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let opts = EvalOptions::new().with_fail_fast(false);
+    let opts = EvalOptions::new().with_fail_fast(false).with_skip_preflight(true);
 
     let report = evaluate_with_options(&EchoAgent, &dataset, &registry, &opts)
         .await
@@ -765,4 +765,144 @@ tests:
 
     assert_eq!(report.results()[0].label(), TestCaseLabel::Pass);
     assert_eq!(report.results()[1].label(), TestCaseLabel::Fail);
+}
+
+// ---------------------------------------------------------------------------
+// Preflight check validation
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn preflight_catches_unknown_check_before_agent_runs() {
+    let call_count = Arc::new(AtomicUsize::new(0));
+    let call_count_clone = call_count.clone();
+
+    struct CountingAgent(Arc<AtomicUsize>);
+    impl Agent for CountingAgent {
+        async fn run(&self, prompt: &str) -> smoleval::Result<AgentResponse> {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            Ok(AgentResponse::new(prompt, vec![]))
+        }
+    }
+
+    let yaml = r#"
+name: "Preflight Test"
+tests:
+  - name: goodTest
+    prompt: "hello"
+    checks:
+      - kind: responseExactMatch
+        value: "hello"
+  - name: badTest
+    prompt: "world"
+    checks:
+      - kind: completelyBogusCheck
+        foo: bar
+"#;
+
+    let dataset = EvalDataset::from_yaml(yaml).unwrap();
+    let registry = CheckRegistry::with_builtins();
+    let agent = CountingAgent(call_count_clone);
+
+    let result = evaluate(&agent, &dataset, &registry).await;
+    assert!(result.is_err());
+    let msg = result.unwrap_err().to_string();
+    assert!(msg.contains("preflight"));
+    assert!(msg.contains("completelyBogusCheck"));
+    assert!(msg.contains("badTest"));
+    // Agent should NOT have been called
+    assert_eq!(call_count.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn preflight_collects_multiple_errors() {
+    let yaml = r#"
+name: "Multi Error Preflight"
+tests:
+  - name: t1
+    prompt: "hello"
+    checks:
+      - kind: fakeCheckA
+  - name: t2
+    prompt: "world"
+    checks:
+      - kind: responseExactMatch
+        value: "world"
+      - kind: fakeCheckB
+"#;
+
+    let dataset = EvalDataset::from_yaml(yaml).unwrap();
+    let registry = CheckRegistry::with_builtins();
+
+    let result = evaluate(&EchoAgent, &dataset, &registry).await;
+    assert!(result.is_err());
+    let msg = result.unwrap_err().to_string();
+    assert!(msg.contains("fakeCheckA"));
+    assert!(msg.contains("fakeCheckB"));
+    assert!(msg.contains("t1"));
+    assert!(msg.contains("t2"));
+}
+
+#[tokio::test]
+async fn preflight_invalid_config_caught() {
+    let yaml = r#"
+name: "Bad Config"
+tests:
+  - name: badConfig
+    prompt: "hello"
+    checks:
+      - kind: responseContainsAll
+        wrongField: 123
+"#;
+
+    let dataset = EvalDataset::from_yaml(yaml).unwrap();
+    let registry = CheckRegistry::with_builtins();
+
+    let result = evaluate(&EchoAgent, &dataset, &registry).await;
+    assert!(result.is_err());
+    let msg = result.unwrap_err().to_string();
+    assert!(msg.contains("badConfig"));
+    assert!(msg.contains("responseContainsAll"));
+}
+
+#[tokio::test]
+async fn preflight_valid_dataset_runs_normally() {
+    let yaml = r#"
+name: "Valid Dataset"
+tests:
+  - name: t1
+    prompt: "hello"
+    checks:
+      - kind: responseExactMatch
+        value: "hello"
+"#;
+
+    let dataset = EvalDataset::from_yaml(yaml).unwrap();
+    let registry = CheckRegistry::with_builtins();
+
+    let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
+    assert_eq!(report.passed_count(), 1);
+}
+
+#[tokio::test]
+async fn validate_dataset_standalone() {
+    let yaml = r#"
+name: "Standalone Validation"
+tests:
+  - name: t1
+    prompt: "hello"
+    checks:
+      - kind: responseExactMatch
+        value: "hello"
+  - name: t2
+    prompt: "world"
+    checks:
+      - kind: bogusCheck
+"#;
+
+    let dataset = EvalDataset::from_yaml(yaml).unwrap();
+    let registry = CheckRegistry::with_builtins();
+
+    let result = registry.validate_dataset(&dataset);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("bogusCheck"));
 }
