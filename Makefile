@@ -47,6 +47,15 @@ example-rig-agent:  ## Start the Rig agent HTTP server for smoleval-cli
 example-langchain-agent:  ## Start the LangChain agent HTTP server for smoleval-cli
 	uv run crates/smoleval-cli-example/agent.py
 
+.PHONY: example-langgraph-agent-eval
+example-langgraph-agent-eval:  ## Run smoleval-cli for LangGraph agent
+	cargo run -p smoleval-cli -- \
+		--dataset crates/smoleval-cli-example/data/eval_dataset.yaml \
+		--agent http://localhost:3826 \
+		--concurrency 3 \
+		--quiet \
+		--format json --output results.json
+
 .PHONY: doc-lib
 doc-lib:  ## Run cargo doc for smoleval lib
 	cd $(LIB_DIR) && cargo doc --open
