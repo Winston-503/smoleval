@@ -95,6 +95,9 @@ pub fn format_json(report: &EvalReport, threshold: f64, w: &mut dyn Write) -> st
                     })
                 }).collect::<Vec<_>>(),
             });
+            if let Some(response) = r.outcome().response() {
+                obj["response"] = serde_json::json!(response);
+            }
             if let Some(err) = r.outcome().error() {
                 obj["error"] = serde_json::json!(err);
             }
