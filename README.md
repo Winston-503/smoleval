@@ -1,6 +1,6 @@
 # smoleval 🧪🤖🦀
 
-Minimal evaluation framework for AI agents written in Rust. Define test cases in YAML and get structured pass/fail reports.
+Minimal and lightweight evaluation framework for AI agents written in Rust. Define test cases in YAML and get structured pass/fail reports.
 
 ## Features
 
