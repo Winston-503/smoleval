@@ -9,6 +9,9 @@
 # ///
 """Minimal LangChain agent server compatible with smoleval's HTTP protocol."""
 
+import contextvars
+import threading
+
 import dotenv
 from flask import Flask, jsonify, request
 from langchain_core.tools import tool
@@ -17,14 +20,21 @@ from langchain.agents import create_agent
 
 dotenv.load_dotenv()
 
-# Records tool invocations for the current request.
-tool_call_log: list[dict] = []
+# Per-request tool-call log, isolated via threading.local().
+_request_log = threading.local()
+
+
+def _get_log() -> list[dict]:
+    """Return the tool-call log for the current request."""
+    if not hasattr(_request_log, "calls"):
+        _request_log.calls = []
+    return _request_log.calls
 
 
 @tool
 def add(x: int, y: int) -> int:
     """Add two numbers together."""
-    tool_call_log.append({"name": "add", "arguments": {"x": x, "y": y}})
+    _get_log().append({"name": "add", "arguments": {"x": x, "y": y}})
     return x + y
 
 
@@ -44,15 +54,17 @@ app = Flask(__name__)
 
 @app.post("/")
 def handle():
-    tool_call_log.clear()
+    # Reset the per-thread log for this request.
+    _request_log.calls = []
     prompt = request.json["prompt"]
     print(f"\n>>> Received prompt: {prompt}")
     result = agent.invoke({"messages": [("user", prompt)]})
     text = result["messages"][-1].content
-    if tool_call_log:
-        print(f"    Tools used: {[tc['name'] for tc in tool_call_log]}")
+    log = _get_log()
+    if log:
+        print(f"    Tools used: {[tc['name'] for tc in log]}")
     print(f"    Response: {text}")
-    return jsonify({"text": text, "toolCalls": tool_call_log})
+    return jsonify({"text": text, "toolCalls": log})
 
 
 if __name__ == "__main__":
