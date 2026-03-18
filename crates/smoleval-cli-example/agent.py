@@ -9,9 +9,6 @@
 # ///
 """Minimal LangChain agent server compatible with smoleval's HTTP protocol."""
 
-import contextvars
-import threading
-
 import dotenv
 from flask import Flask, jsonify, request
 from langchain_core.tools import tool
@@ -20,33 +17,12 @@ from langchain.agents import create_agent
 
 dotenv.load_dotenv()
 
-# Per-request tool-call log, isolated via threading.local().
-_request_log = threading.local()
-
-
-def _get_log() -> list[dict]:
-    """Return the tool-call log for the current request."""
-    if not hasattr(_request_log, "calls"):
-        _request_log.calls = []
-    return _request_log.calls
-
-
-@tool
-def add(x: int, y: int) -> int:
-    """Add two numbers together."""
-    _get_log().append({"name": "add", "arguments": {"x": x, "y": y}})
-    return x + y
-
-
 model = ChatOpenAI(model="gpt-4.1-mini")
-agent = create_agent(
-    model,
-    tools=[add],
-    system_prompt=(
-        "You are a calculator assistant. "
-        "Use the `add` tool to perform addition. "
-        "Always use the tool rather than computing in your head."
-    ),
+
+SYSTEM_PROMPT = (
+    "You are a calculator assistant. "
+    "Use the `add` tool to perform addition. "
+    "Always use the tool rather than computing in your head."
 )
 
 app = Flask(__name__)
@@ -54,17 +30,25 @@ app = Flask(__name__)
 
 @app.post("/")
 def handle():
-    # Reset the per-thread log for this request.
-    _request_log.calls = []
+    # Build a fresh tool and agent per request so the tool-call log is isolated.
+    tool_calls: list[dict] = []
+
+    @tool
+    def add(x: int, y: int) -> int:
+        """Add two numbers together."""
+        tool_calls.append({"name": "add", "arguments": {"x": x, "y": y}})
+        return x + y
+
+    agent = create_agent(model, tools=[add], system_prompt=SYSTEM_PROMPT)
+
     prompt = request.json["prompt"]
     print(f"\n>>> Received prompt: {prompt}")
     result = agent.invoke({"messages": [("user", prompt)]})
     text = result["messages"][-1].content
-    log = _get_log()
-    if log:
-        print(f"    Tools used: {[tc['name'] for tc in log]}")
+    if tool_calls:
+        print(f"    Tools used: {[tc['name'] for tc in tool_calls]}")
     print(f"    Response: {text}")
-    return jsonify({"text": text, "toolCalls": log})
+    return jsonify({"text": text, "toolCalls": tool_calls})
 
 
 if __name__ == "__main__":
