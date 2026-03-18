@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use clap::Parser;
-use smoleval::{CheckRegistry, EvalDataset, EvalOptions, HttpAgent, evaluate_with_options};
+use smoleval::{CheckRegistry, EvalDataset, EvalOptions, HttpAgent, evaluate};
 
 #[derive(Clone, Debug)]
 enum OutputFormat {
@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
     if !cli.quiet {
         options = options.with_print_on_result();
     }
-    let report = evaluate_with_options(&agent, &dataset, &registry, &options).await?;
+    let report = evaluate(&agent, &dataset, &registry, &options).await?;
 
     if !cli.quiet {
         let stdout = std::io::stdout();

@@ -4,7 +4,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use smoleval::check::parse_config;
 use smoleval::{
-    Agent, AgentResponse, Check, CheckRegistry, CheckResult, EvalDataset, EvalOptions, ToolCall, evaluate_with_options,
+    Agent, AgentResponse, Check, CheckRegistry, CheckResult, EvalDataset, EvalOptions, ToolCall, evaluate,
 };
 use std::time::Duration;
 
@@ -166,7 +166,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let agent = MockAgent::new(Duration::from_millis(500));
     let options = EvalOptions::new().with_print_on_result();
 
-    let report = evaluate_with_options(&agent, &dataset, &registry, &options).await?;
+    let report = evaluate(&agent, &dataset, &registry, &options).await?;
 
     println!(
         "Results: {}/{} passed | Mean score: {:.2}",

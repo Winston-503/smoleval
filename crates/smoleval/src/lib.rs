@@ -11,7 +11,7 @@ pub use check::{Check, CheckLabel, CheckRegistry, CheckResult, CheckSpec};
 pub use dataset::{EvalDataset, TestCase};
 pub use error::{Result, SmolError};
 pub use eval::{
-    EvalOptions, EvalReport, TestCaseLabel, TestCaseResult, evaluate, evaluate_with_options, print_on_result,
+    EvalOptions, EvalReport, TestCaseLabel, TestCaseResult, evaluate, print_on_result,
 };
 #[cfg(feature = "http")]
 pub use http_agent::{HttpAgent, PromptRequest};
