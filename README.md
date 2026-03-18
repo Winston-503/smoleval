@@ -1,24 +1,16 @@
 # smoleval 🧪🤖🦀
 
-A minimal evaluation framework for AI agents written in Rust. Define test cases in YAML and get structured pass/fail reports.
+Minimal evaluation framework for AI agents written in Rust. Define test cases in YAML and get structured pass/fail reports.
 
 ## Features
 
 - YAML-driven evaluation datasets
 - CLI tool for running evals against HTTP agent endpoints
-- Registry-based extendable check system with pluggable built-in validators
+- Registry-based check system with pluggable built-in validators
 - Structured reports with per-test scores and aggregate metrics
 - Pluggable `Agent` trait — back it with an HTTP API, local model, or a mock
 
 ## Quick start
-
-Install with:
-
-```toml
-[dependencies]
-smoleval = "0.1"
-tokio = { version = "1", features = ["full"] }
-```
 
 ### Define a dataset
 
@@ -34,37 +26,18 @@ tests:
         caseSensitive: true
       - kind: toolUsedAtLeast
         name: "get_weather"
+        times: 1
 ```
 
-### Run an evaluation
+### Run with the CLI
 
-```rust
-use smoleval::{Agent, AgentResponse, CheckRegistry, EvalDataset, evaluate};
-
-// Implement the Agent trait for your system
-struct MyAgent;
-
-impl Agent for MyAgent {
-    async fn run(&self, prompt: &str) -> smoleval::Result<AgentResponse> {
-        // Call your AI agent here
-        todo!()
-    }
-}
-
-#[tokio::main]
-async fn main() {
-    let dataset = EvalDataset::from_file("eval.yaml".as_ref()).unwrap();
-    let registry = CheckRegistry::default(); // built-in checks
-    let agent = MyAgent;
-
-    let report = evaluate(&agent, &dataset, &registry).await.unwrap();
-    println!("Score: {:.0}% ({}/{})",
-        report.mean_score() * 100.0,
-        report.passed_count(),
-        report.total_count(),
-    );
-}
+```bash
+smoleval-cli --dataset eval.yaml --endpoint http://localhost:8080/chat
 ```
+
+### Run programmatically
+
+See the [`smoleval`](crates/smoleval/README.md) crate README for the library API.
 
 ## Built-in checks
 
