@@ -11,7 +11,7 @@ Shows how to:
 ## Running
 
 ```bash
+export OPENAI_API_KEY=sk-...  # could be fake one, but without the key preflight check will fail
+
 make example-smoleval
 ```
-
-Optionally set `OPENAI_API_KEY` to enable the LLM-as-a-judge check. Without it the `llmJudge` check is skipped.
