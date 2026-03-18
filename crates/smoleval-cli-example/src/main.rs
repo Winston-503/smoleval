@@ -5,15 +5,13 @@ use rig::client::{CompletionClient, ProviderClient};
 use rig::completion::Prompt;
 use rig::completion::ToolDefinition;
 use rig::providers::openai;
-use rig::providers::openai::responses_api::ResponsesCompletionModel;
 use rig::tool::{Tool, ToolDyn};
 use serde::Deserialize;
 use serde_json::json;
 use smoleval::{AgentResponse, PromptRequest, ToolCall};
-use tokio::sync::Mutex as TokioMutex;
 
 // ---------------------------------------------------------------------------
-// Tool-call recorder: shared between the Rig tool and the HTTP handler
+// Tool-call recorder: each request gets its own instance
 // ---------------------------------------------------------------------------
 type ToolCallRecorder = Arc<Mutex<Vec<ToolCall>>>;
 
@@ -75,24 +73,35 @@ impl Tool for Adder {
 // ---------------------------------------------------------------------------
 #[derive(Clone)]
 struct AppState {
-    agent: Arc<rig::agent::Agent<ResponsesCompletionModel>>,
-    recorder: ToolCallRecorder,
-    /// Serialises requests so each clear→prompt→drain cycle is atomic.
-    request_lock: Arc<TokioMutex<()>>,
+    openai_client: Arc<openai::Client>,
 }
 
 // ---------------------------------------------------------------------------
 // Handler: POST / {"prompt": "..."} -> {"text": "...", "toolCalls": [...]}
 // ---------------------------------------------------------------------------
 async fn handle(State(state): State<AppState>, Json(req): Json<PromptRequest>) -> Json<AgentResponse> {
-    // Hold an async lock for the entire request so concurrent requests don't interleave their tool-call recordings.
-    let _guard = state.request_lock.lock().await;
+    // Build a fresh agent (and recorder) per request so tool calls are isolated.
+    let recorder: ToolCallRecorder = Arc::new(Mutex::new(Vec::new()));
 
-    state.recorder.lock().unwrap().clear();
+    let tools: Vec<Box<dyn ToolDyn>> = vec![Box::new(Adder {
+        recorder: recorder.clone(),
+    })];
 
-    match state.agent.prompt(req.prompt()).await {
+    let agent = state
+        .openai_client
+        .agent(openai::GPT_4_1_MINI)
+        .preamble(
+            "You are a calculator assistant. \
+             Use the `add` tool to perform addition. \
+             Always use the tool rather than computing in your head.",
+        )
+        .tools(tools)
+        .max_tokens(1024)
+        .build();
+
+    match agent.prompt(req.prompt()).await {
         Ok(text) => {
-            let tool_calls = state.recorder.lock().unwrap().drain(..).collect();
+            let tool_calls = recorder.lock().unwrap().drain(..).collect();
             Json(AgentResponse::new(text, tool_calls))
         }
         Err(e) => Json(AgentResponse::new(format!("Error: {e}"), vec![])),
@@ -106,29 +115,10 @@ async fn handle(State(state): State<AppState>, Json(req): Json<PromptRequest>) -
 async fn main() {
     dotenvy::dotenv().ok();
 
-    let recorder: ToolCallRecorder = Arc::new(Mutex::new(Vec::new()));
-
     let openai_client = openai::Client::from_env();
 
-    let tools: Vec<Box<dyn ToolDyn>> = vec![Box::new(Adder {
-        recorder: recorder.clone(),
-    })];
-
-    let agent = openai_client
-        .agent(openai::GPT_4_1_MINI)
-        .preamble(
-            "You are a calculator assistant. \
-             Use the `add` tool to perform addition. \
-             Always use the tool rather than computing in your head.",
-        )
-        .tools(tools)
-        .max_tokens(1024)
-        .build();
-
     let state = AppState {
-        agent: Arc::new(agent),
-        recorder,
-        request_lock: Arc::new(TokioMutex::new(())),
+        openai_client: Arc::new(openai_client),
     };
 
     let app = Router::new().route("/", post(handle)).with_state(state);
