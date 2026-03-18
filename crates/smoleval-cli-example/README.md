@@ -37,9 +37,9 @@ smoleval --dataset crates/smoleval-cli-example/data/eval_dataset.yaml --agent ht
 Run tests concurrently with `--concurrency`. Pair it with `--quiet` and `--output` so live agent logs stay readable and the eval report goes to a file:
 
 ```bash
-smoleval \
+cargo run -p smoleval-cli -- \
   --dataset crates/smoleval-cli-example/data/eval_dataset.yaml \
-  --agent http://localhost:3825 \
+  --agent http://localhost:3826 \
   --concurrency 3 \
   --quiet \
   --output results.json

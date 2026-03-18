@@ -54,7 +54,7 @@ example-langgraph-agent-eval:  ## Run smoleval-cli for LangGraph agent
 		--agent http://localhost:3826 \
 		--concurrency 3 \
 		--quiet \
-		--format json --output results.json
+		--output results.json
 
 .PHONY: doc-lib
 doc-lib:  ## Run cargo doc for smoleval lib

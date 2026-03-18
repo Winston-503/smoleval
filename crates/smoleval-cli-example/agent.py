@@ -17,26 +17,12 @@ from langchain.agents import create_agent
 
 dotenv.load_dotenv()
 
-# Records tool invocations for the current request.
-tool_call_log: list[dict] = []
-
-
-@tool
-def add(x: int, y: int) -> int:
-    """Add two numbers together."""
-    tool_call_log.append({"name": "add", "arguments": {"x": x, "y": y}})
-    return x + y
-
-
 model = ChatOpenAI(model="gpt-4.1-mini")
-agent = create_agent(
-    model,
-    tools=[add],
-    system_prompt=(
-        "You are a calculator assistant. "
-        "Use the `add` tool to perform addition. "
-        "Always use the tool rather than computing in your head."
-    ),
+
+SYSTEM_PROMPT = (
+    "You are a calculator assistant. "
+    "Use the `add` tool to perform addition. "
+    "Always use the tool rather than computing in your head."
 )
 
 app = Flask(__name__)
@@ -44,15 +30,25 @@ app = Flask(__name__)
 
 @app.post("/")
 def handle():
-    tool_call_log.clear()
+    # Build a fresh tool and agent per request so the tool-call log is isolated.
+    tool_calls: list[dict] = []
+
+    @tool
+    def add(x: int, y: int) -> int:
+        """Add two numbers together."""
+        tool_calls.append({"name": "add", "arguments": {"x": x, "y": y}})
+        return x + y
+
+    agent = create_agent(model, tools=[add], system_prompt=SYSTEM_PROMPT)
+
     prompt = request.json["prompt"]
     print(f"\n>>> Received prompt: {prompt}")
     result = agent.invoke({"messages": [("user", prompt)]})
     text = result["messages"][-1].content
-    if tool_call_log:
-        print(f"    Tools used: {[tc['name'] for tc in tool_call_log]}")
+    if tool_calls:
+        print(f"    Tools used: {[tc['name'] for tc in tool_calls]}")
     print(f"    Response: {text}")
-    return jsonify({"text": text, "toolCalls": tool_call_log})
+    return jsonify({"text": text, "toolCalls": tool_calls})
 
 
 if __name__ == "__main__":
