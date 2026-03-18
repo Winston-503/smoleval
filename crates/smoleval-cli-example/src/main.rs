@@ -10,6 +10,7 @@ use rig::tool::{Tool, ToolDyn};
 use serde::Deserialize;
 use serde_json::json;
 use smoleval::{AgentResponse, PromptRequest, ToolCall};
+use tokio::sync::Mutex as TokioMutex;
 
 // ---------------------------------------------------------------------------
 // Tool-call recorder: shared between the Rig tool and the HTTP handler
@@ -76,13 +77,17 @@ impl Tool for Adder {
 struct AppState {
     agent: Arc<rig::agent::Agent<ResponsesCompletionModel>>,
     recorder: ToolCallRecorder,
+    /// Serialises requests so each clear→prompt→drain cycle is atomic.
+    request_lock: Arc<TokioMutex<()>>,
 }
 
 // ---------------------------------------------------------------------------
 // Handler: POST / {"prompt": "..."} -> {"text": "...", "toolCalls": [...]}
 // ---------------------------------------------------------------------------
 async fn handle(State(state): State<AppState>, Json(req): Json<PromptRequest>) -> Json<AgentResponse> {
-    // Clear any previous tool call records
+    // Hold an async lock for the entire request so concurrent requests don't interleave their tool-call recordings.
+    let _guard = state.request_lock.lock().await;
+
     state.recorder.lock().unwrap().clear();
 
     match state.agent.prompt(req.prompt()).await {
@@ -123,6 +128,7 @@ async fn main() {
     let state = AppState {
         agent: Arc::new(agent),
         recorder,
+        request_lock: Arc::new(TokioMutex::new(())),
     };
 
     let app = Router::new().route("/", post(handle)).with_state(state);
