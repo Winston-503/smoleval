@@ -4,7 +4,7 @@ CLI_DIR := crates/smoleval-cli
 .PHONY: help
 help:  ## Display this help screen
 	@echo -e "\033[1mAvailable commands:\033[0m"
-	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-26s\033[0m %s\n", $$1, $$2}' | sort
+	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2}' | sort
 
 .PHONY: check
 check:  ## Run cargo check (workspace)
@@ -47,8 +47,8 @@ example-rig-agent:  ## Start the Rig agent HTTP server for smoleval-cli
 example-langchain-agent:  ## Start the LangChain agent HTTP server for smoleval-cli
 	uv run crates/smoleval-cli-example/agent.py
 
-.PHONY: example-langgraph-agent-eval
-example-langgraph-agent-eval:  ## Run smoleval-cli for LangGraph agent
+.PHONY: example-langchain-agent-eval
+example-langchain-agent-eval:  ## Run smoleval-cli for LangChain agent
 	cargo run -p smoleval-cli -- \
 		--dataset crates/smoleval-cli-example/data/eval_dataset.yaml \
 		--agent http://localhost:3826 \

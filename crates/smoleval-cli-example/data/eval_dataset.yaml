@@ -1,7 +1,12 @@
-name: "Calculator Agent Eval"
-description: "Evaluation dataset for a Rig-based calculator agent served over HTTP"
+name: CalculatorAgentEvalDataset
+description: |
+  Evaluation dataset for a calculator agent with `add(x, y)` tool
 tests:
   - name: simpleAddition
+    description: |
+      Checks that when asked "2 + 3", 
+      the agent uses the `add` tool at least once 
+      and the final response contains either "5" or "five"
     prompt: |
       What is 2 + 3?
     checks:
@@ -12,6 +17,10 @@ tests:
         times: 1
 
   - name: largerAddition
+    description: |
+      Checks that when asked "100 + 250", 
+      the agent uses the `add` tool exactly once 
+      and the final response contains "350"
     prompt: |
       Please add 100 and 250 together.
     checks:
@@ -22,8 +31,12 @@ tests:
         times: 1
 
   - name: noHallucination
+    description: |
+      Checks that when asked "7 + 8", 
+      the final response contains either "15" or "fifteen" 
+      and doesn't contain "14" or "16"
     prompt: |
-      What is 7 + 8?
+      What is seven plus eight?
     checks:
       - kind: responseContainsAny
         values: ["15", "fifteen"]
