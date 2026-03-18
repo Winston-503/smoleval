@@ -236,21 +236,12 @@ impl EvalReport {
     }
 }
 
-/// Run a full evaluation (backward-compatible, sequential, fail-fast).
-///
-/// For each test case: sends the prompt to the agent, runs all checks from
-/// the registry, and collects results into an [`EvalReport`].
-pub async fn evaluate<A: Agent>(agent: &A, dataset: &EvalDataset, registry: &CheckRegistry) -> Result<EvalReport> {
-    let options = EvalOptions::new().with_fail_fast(true);
-    evaluate_with_options(agent, dataset, registry, &options).await
-}
-
 /// Run a full evaluation with configurable options.
 ///
 /// When `fail_fast` is false, agent errors and check-creation errors are
 /// captured per-test-case (score 0.0) instead of aborting the run.
 /// When `concurrency` > 1, test cases run in parallel (fail_fast is ignored).
-pub async fn evaluate_with_options<A: Agent>(
+pub async fn evaluate<A: Agent>(
     agent: &A,
     dataset: &EvalDataset,
     registry: &CheckRegistry,
@@ -595,7 +586,8 @@ mod tests {
     async fn evaluate_empty_dataset() {
         let dataset = make_dataset("empty", vec![]);
         let registry = CheckRegistry::with_builtins();
-        let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
+        let opts = EvalOptions::default();
+        let report = evaluate(&EchoAgent, &dataset, &registry, &opts).await.unwrap();
         assert_eq!(report.total_count(), 0);
         assert_eq!(report.mean_score(), 0.0);
     }
@@ -604,7 +596,8 @@ mod tests {
     async fn evaluate_no_checks_scores_one() {
         let dataset = make_dataset("test", vec![make_test_case("t1", "hello", vec![])]);
         let registry = CheckRegistry::with_builtins();
-        let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
+        let opts = EvalOptions::default();
+        let report = evaluate(&EchoAgent, &dataset, &registry, &opts).await.unwrap();
         assert_eq!(report.results()[0].score(), 1.0);
     }
 
@@ -612,7 +605,8 @@ mod tests {
     async fn evaluate_agent_error_propagates() {
         let dataset = make_dataset("test", vec![make_test_case("t1", "hello", vec![])]);
         let registry = CheckRegistry::with_builtins();
-        let result = evaluate(&FailAgent, &dataset, &registry).await;
+        let opts = EvalOptions::new().with_fail_fast(true);
+        let result = evaluate(&FailAgent, &dataset, &registry, &opts).await;
         assert!(result.is_err());
     }
 
@@ -620,7 +614,8 @@ mod tests {
     async fn evaluate_preserves_response() {
         let dataset = make_dataset("test", vec![make_test_case("t1", "my prompt", vec![])]);
         let registry = CheckRegistry::with_builtins();
-        let report = evaluate(&EchoAgent, &dataset, &registry).await.unwrap();
+        let opts = EvalOptions::default();
+        let report = evaluate(&EchoAgent, &dataset, &registry, &opts).await.unwrap();
         assert_eq!(report.results()[0].outcome().response().unwrap().text(), "my prompt");
     }
 }

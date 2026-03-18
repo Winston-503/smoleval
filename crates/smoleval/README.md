@@ -38,7 +38,7 @@ tests:
 ### Run an evaluation
 
 ```rust
-use smoleval::{Agent, AgentResponse, CheckRegistry, EvalDataset, evaluate};
+use smoleval::{Agent, AgentResponse, CheckRegistry, EvalDataset, EvalOptions, evaluate};
 
 struct MyAgent;
 
@@ -54,8 +54,9 @@ async fn main() {
     let dataset = EvalDataset::from_file("eval.yaml".as_ref()).unwrap();
     let registry = CheckRegistry::with_builtins();
     let agent = MyAgent;
+    let options = EvalOptions::default();
 
-    let report = evaluate(&agent, &dataset, &registry).await.unwrap();
+    let report = evaluate(&agent, &dataset, &registry, &options).await.unwrap();
     println!("Score: {:.0}% ({}/{})",
         report.mean_score() * 100.0,
         report.passed_count(),
