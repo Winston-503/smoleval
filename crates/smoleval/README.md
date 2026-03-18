@@ -14,7 +14,7 @@ Minimal and lightweight evaluation framework for AI agents. Define test cases in
 
 ```toml
 [dependencies]
-smoleval = "0.1"
+smoleval = "0.2"
 tokio = { version = "1", features = ["full"] }
 ```
 
