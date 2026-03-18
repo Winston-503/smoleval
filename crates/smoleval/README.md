@@ -1,16 +1,14 @@
 # smoleval
 
-A minimal evaluation framework for AI agents in Rust.
-
-Define test cases in YAML, implement the `Agent` trait for your system, and get structured pass/fail reports.
+Minimal and lightweight evaluation framework for AI agents. Define test cases in YAML and get structured pass/fail reports.
 
 ## Features
 
 - YAML-driven evaluation datasets
+- CLI tool for running evals against HTTP agent endpoints
+- Registry-based extendable check system with pluggable built-in validators
+- Structured reports with per-test scores and aggregate metrics
 - Pluggable `Agent` trait — back it with an HTTP API, local model, or a mock
-- Registry-based check system with pluggable built-in validators
-- Structured reports with per-test scores (0.0–1.0) and aggregate metrics
-- Optional HTTP agent client (enabled by default via `http` feature)
 
 ## Quick start
 
@@ -34,6 +32,7 @@ tests:
         caseSensitive: true
       - kind: toolUsedAtLeast
         name: "get_weather"
+        times: 1
 ```
 
 ### Run an evaluation
@@ -53,7 +52,7 @@ impl Agent for MyAgent {
 #[tokio::main]
 async fn main() {
     let dataset = EvalDataset::from_file("eval.yaml".as_ref()).unwrap();
-    let registry = CheckRegistry::default(); // built-in checks
+    let registry = CheckRegistry::with_builtins();
     let agent = MyAgent;
     let options = EvalOptions::default();
 
