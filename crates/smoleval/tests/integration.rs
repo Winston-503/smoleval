@@ -2,9 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use smoleval::error::SmolError;
-use smoleval::{
-    Agent, AgentResponse, CheckRegistry, EvalDataset, EvalOptions, ToolCall, evaluate,
-};
+use smoleval::{Agent, AgentResponse, CheckRegistry, EvalDataset, EvalOptions, ToolCall, evaluate};
 
 /// Mock agent that echoes the prompt and optionally uses tools.
 struct EchoAgent;
@@ -26,7 +24,9 @@ async fn load_yaml_and_evaluate() {
     assert_eq!(dataset.tests().len(), 4);
 
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.total_count(), 4);
     // echoBasic: responseContainsAll + responseExactMatch on "Hello, world!" -> both pass
@@ -57,7 +57,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.total_count(), 1);
     assert_eq!(report.failed_count(), 1);
@@ -90,7 +92,9 @@ tests:
     let mut registry = CheckRegistry::with_builtins();
     registry.register("alwaysPass", Box::new(|_config| Ok(Box::new(AlwaysPass))));
 
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
     assert_eq!(report.passed_count(), 1);
 }
 
@@ -146,15 +150,11 @@ tests:
 
     // Run sequentially
     let seq_opts = EvalOptions::new().with_concurrency(1);
-    let seq_report = evaluate(&EchoAgent, &dataset, &registry, &seq_opts)
-        .await
-        .unwrap();
+    let seq_report = evaluate(&EchoAgent, &dataset, &registry, &seq_opts).await.unwrap();
 
     // Run concurrently
     let conc_opts = EvalOptions::new().with_concurrency(4);
-    let conc_report = evaluate(&EchoAgent, &dataset, &registry, &conc_opts)
-        .await
-        .unwrap();
+    let conc_report = evaluate(&EchoAgent, &dataset, &registry, &conc_opts).await.unwrap();
 
     assert_eq!(seq_report.total_count(), conc_report.total_count());
     assert_eq!(seq_report.passed_count(), conc_report.passed_count());
@@ -214,9 +214,7 @@ tests:
     let registry = CheckRegistry::with_builtins();
     let opts = EvalOptions::new().with_fail_fast(false);
 
-    let report = evaluate(&SelectiveFailAgent, &dataset, &registry, &opts)
-        .await
-        .unwrap();
+    let report = evaluate(&SelectiveFailAgent, &dataset, &registry, &opts).await.unwrap();
 
     assert_eq!(report.total_count(), 3);
     // First and third pass (no checks, agent succeeds)
@@ -264,9 +262,7 @@ tests:
     let registry = CheckRegistry::with_builtins();
     let opts = EvalOptions::new().with_concurrency(3);
 
-    let report = evaluate(&SelectiveFailAgent, &dataset, &registry, &opts)
-        .await
-        .unwrap();
+    let report = evaluate(&SelectiveFailAgent, &dataset, &registry, &opts).await.unwrap();
 
     assert_eq!(report.total_count(), 3);
     assert_eq!(report.errored_count(), 1);
@@ -302,9 +298,7 @@ tests:
         counter_clone.fetch_add(1, Ordering::SeqCst);
     });
 
-    evaluate(&EchoAgent, &dataset, &registry, &opts)
-        .await
-        .unwrap();
+    evaluate(&EchoAgent, &dataset, &registry, &opts).await.unwrap();
 
     assert_eq!(counter.load(Ordering::SeqCst), 3);
 }
@@ -331,9 +325,7 @@ tests:
         counter_clone.fetch_add(1, Ordering::SeqCst);
     });
 
-    evaluate(&EchoAgent, &dataset, &registry, &opts)
-        .await
-        .unwrap();
+    evaluate(&EchoAgent, &dataset, &registry, &opts).await.unwrap();
 
     assert_eq!(counter.load(Ordering::SeqCst), 2);
 }
@@ -358,7 +350,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.total_count(), 1);
     let result = &report.results()[0];
@@ -412,9 +406,7 @@ tests:
     let registry = CheckRegistry::with_builtins();
     let opts = EvalOptions::new().with_fail_fast(false).with_skip_preflight(true);
 
-    let report = evaluate(&EchoAgent, &dataset, &registry, &opts)
-        .await
-        .unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &opts).await.unwrap();
 
     assert_eq!(report.total_count(), 2);
     assert_eq!(report.results()[0].score(), 0.0);
@@ -441,7 +433,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.results()[0].score(), 1.0);
 }
@@ -462,7 +456,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.results()[0].score(), 0.0);
 }
@@ -483,7 +479,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.results()[0].score(), 1.0);
 }
@@ -514,9 +512,7 @@ tests:
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
     let opts = EvalOptions::new().with_fail_fast(false);
-    let report = evaluate(&EchoAgent, &dataset, &registry, &opts)
-        .await
-        .unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &opts).await.unwrap();
 
     assert_eq!(report.results()[0].score(), 1.0);
     assert_eq!(report.results()[1].score(), 0.0);
@@ -555,9 +551,7 @@ tests:
     let registry = CheckRegistry::with_builtins();
     let opts = EvalOptions::new().with_fail_fast(false);
 
-    let report = evaluate(&SelectiveFailAgent, &dataset, &registry, &opts)
-        .await
-        .unwrap();
+    let report = evaluate(&SelectiveFailAgent, &dataset, &registry, &opts).await.unwrap();
 
     assert_eq!(report.total_count(), 4);
     assert_eq!(report.passed_count(), 2);
@@ -585,7 +579,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.results()[0].score(), 0.0);
 }
@@ -608,7 +604,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.results()[0].score(), 0.0);
 }
@@ -659,7 +657,9 @@ tests:
         }),
     );
 
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
     let result = &report.results()[0];
 
     assert_eq!(result.check_results().len(), 3);
@@ -695,7 +695,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(report.dataset_name(), "Metadata Test");
     assert_eq!(report.results()[0].test_case().name(), "first");
@@ -727,7 +729,9 @@ tests:
 
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
 
     assert!(!report.duration().is_zero());
     assert!(!report.results()[0].agent_duration().is_zero());
@@ -759,9 +763,7 @@ tests:
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
     let opts = EvalOptions::new().with_fail_fast(false);
-    let report = evaluate(&EchoAgent, &dataset, &registry, &opts)
-        .await
-        .unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &opts).await.unwrap();
 
     assert_eq!(report.results()[0].label(), TestCaseLabel::Pass);
     assert_eq!(report.results()[1].label(), TestCaseLabel::Fail);
@@ -879,7 +881,9 @@ tests:
     let dataset = EvalDataset::from_yaml(yaml).unwrap();
     let registry = CheckRegistry::with_builtins();
 
-    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default()).await.unwrap();
+    let report = evaluate(&EchoAgent, &dataset, &registry, &EvalOptions::default())
+        .await
+        .unwrap();
     assert_eq!(report.passed_count(), 1);
 }
 

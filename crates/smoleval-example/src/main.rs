@@ -3,9 +3,7 @@ use rig::providers::openai;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use smoleval::check::parse_config;
-use smoleval::{
-    Agent, AgentResponse, Check, CheckRegistry, CheckResult, EvalDataset, EvalOptions, ToolCall, evaluate,
-};
+use smoleval::{Agent, AgentResponse, Check, CheckRegistry, CheckResult, EvalDataset, EvalOptions, ToolCall, evaluate};
 use std::time::Duration;
 
 // ---------------------------------------------------------------------------
