@@ -2,7 +2,7 @@
 
 Example HTTP agent servers designed to be evaluated with [smoleval-cli](https://crates.io/crates/smoleval-cli).
 
-Both examples implement the same calculator agent with an `add` tool, demonstrating that smoleval works with any language over HTTP.
+Both examples implement the same calculator agent with an `add` tool, demonstrating that `smoleval` works with any language/framework over HTTP.
 
 ## Rust / Rig (port 3825)
 
