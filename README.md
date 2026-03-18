@@ -1,16 +1,14 @@
 # smoleval 🧪🤖🦀
 
-A minimal evaluation framework for AI agents in Rust.
-
-Define test cases in YAML, implement the `Agent` trait for your system, and get structured pass/fail reports.
+A minimal evaluation framework for AI agents written in Rust. Define test cases in YAML and get structured pass/fail reports.
 
 ## Features
 
 - YAML-driven evaluation datasets
-- Pluggable `Agent` trait — back it with an HTTP API, local model, or a mock
-- Registry-based check system with pluggable built-in validators
-- Structured reports with per-test scores (0.0–1.0) and aggregate metrics
 - CLI tool for running evals against HTTP agent endpoints
+- Registry-based extendable check system with pluggable built-in validators
+- Structured reports with per-test scores and aggregate metrics
+- Pluggable `Agent` trait — back it with an HTTP API, local model, or a mock
 
 ## Quick start
 
@@ -70,26 +68,22 @@ async fn main() {
 
 ## Built-in checks
 
-| Check                  | Description                                                   |
-|------------------------|---------------------------------------------------------------|
-| `responseContainsAll`  | Response contains all specified values                        |
-| `responseContainsAny`  | Response contains at least one of the specified values        |
-| `responseNotContains`  | Response does not contain any of the specified values         |
-| `responseExactMatch`   | Response exactly matches the expected value                   |
-| `toolUsedAtLeast`      | Tool was used at least N times (optional parameter matching)  |
-| `toolUsedAtMost`       | Tool was used at most N times (optional parameter matching)   |
-| `toolUsedExactly`      | Tool was used exactly N times (optional parameter matching)   |
-| `toolsUsedInOrder`     | Tools were used in a specific order (allows gaps)             |
+| Check                  | Description                                                    |
+|------------------------|----------------------------------------------------------------|
+| `responseContainsAll`  | Response contains all specified values                         |
+| `responseContainsAny`  | Response contains at least one of the specified values         |
+| `responseNotContains`  | Response does not contain any of the specified values          |
+| `responseExactMatch`   | Response exactly matches the expected value                    |
+| `toolUsedAtLeast`      | Tool was used at least `N` times (optional parameter matching) |
+| `toolUsedAtMost`       | Tool was used at most `N` times (optional parameter matching)  |
+| `toolUsedExactly`      | Tool was used exactly `N` times (optional parameter matching)  |
+| `toolsUsedInOrder`     | Tools were used in a specific order, with gaps allowed         |
 
 ## Workspace crates
 
-| Crate                  | Description                                          |
-|------------------------|------------------------------------------------------|
-| `smoleval`             | Core evaluation engine                               |
-| `smoleval-cli`         | CLI for running evals against HTTP endpoints         |
-| `smoleval-example`     | Example with a mock agent and custom checks          |
-| `smoleval-cli-example` | Example HTTP agent server using Rig + Axum           |
-
-## License
-
-Apache-2.0
+| Crate                  | Description                                  |
+|------------------------|----------------------------------------------|
+| `smoleval`             | Core evaluation engine                       |
+| `smoleval-cli`         | CLI for running evals against HTTP endpoints |
+| `smoleval-example`     | Example with a mock agent and custom checks  |
+| `smoleval-cli-example` | Example HTTP agent servers                   |

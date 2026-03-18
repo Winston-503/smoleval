@@ -11,7 +11,7 @@ Shows how to:
 ## Running
 
 ```bash
-make example
+make example-smoleval
 ```
 
 Optionally set `OPENAI_API_KEY` to enable the LLM-as-a-judge check. Without it the `llmJudge` check is skipped.

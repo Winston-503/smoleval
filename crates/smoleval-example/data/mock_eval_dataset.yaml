@@ -40,9 +40,10 @@ tests:
       - kind: customCheck
         customValue: "custom"
 
-  - name: incorrectCustomCheck
-    prompt: |
-      This custom check is not properly constructed
-    checks:
-      - kind: customCheck
-        thisIsNotCorrect: "oops"
+  # uncomment this and see what happens
+#  - name: incorrectCustomCheck
+#    prompt: |
+#      This custom check is not properly constructed
+#    checks:
+#      - kind: customCheck
+#        thisIsNotCorrect: "oops"
