@@ -102,6 +102,12 @@ impl LlmJudge {
     fn from_config(config: &serde_json::Value) -> smoleval::Result<Box<dyn Check>> {
         let cfg: LlmJudgeConfig = parse_config(config)?;
 
+        if std::env::var("OPENAI_API_KEY").is_err() {
+            return Err(smoleval::SmolError::CheckConfig(
+                "llmJudge requires OPENAI_API_KEY to be set".into(),
+            ));
+        }
+
         let openai_client = openai::Client::from_env();
 
         let extractor = openai_client
@@ -153,13 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dataset = EvalDataset::from_file(&path)?;
     let mut registry = CheckRegistry::with_builtins();
     registry.register("customCheck", Box::new(CustomCheck::from_config));
-
-    let llm_judge_enabled = std::env::var("OPENAI_API_KEY").is_ok();
-    if llm_judge_enabled {
-        registry.register("llmJudge", Box::new(LlmJudge::from_config));
-    } else {
-        println!("NOTE: llmJudge check is disabled. Set OPENAI_API_KEY to enable LLM-as-a-judge evaluation.\n");
-    }
+    registry.register("llmJudge", Box::new(LlmJudge::from_config));
 
     println!("=== {} ===\n", dataset.name());
 
