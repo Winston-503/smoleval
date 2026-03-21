@@ -2,6 +2,8 @@
 
 Minimal and lightweight evaluation framework for AI agents written in Rust. Define test cases in YAML and get structured pass/fail reports.
 
+📖 Read the [blog post](https://dmytro.bearblog.dev/smoleval/) for motivation and notes on agentic engineering.
+
 ## Features
 
 - YAML-driven evaluation datasets
